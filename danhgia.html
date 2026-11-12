@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Thi đánh giá – MĐ18 Sửa chữa, bảo trì tủ lạnh dân dụng</title>
+<meta name="author" content="Huỳnh Hào Kiệt - Trường Trung cấp nghề Diên Khánh">
+<meta name="theme-color" content="#0a1626">
+<script>
+/* ======================== CẤU HÌNH THI ĐÁNH GIÁ ========================
+   Thầy/cô chỉ cần sửa trong khung này (mở file bằng Notepad, sửa, lưu lại).
+   1) Dán link Web App của Google Apps Script vào giữa hai dấu ngoặc kép ở dòng linkGoogleSheet.
+   2) Câu hỏi trắc nghiệm (trên slide và trong đề thi), danh sách đề thi, lớp... sửa trên Google Sheet
+      (trang NganHang, DeThi, CauHinh). Các dòng còn lại bên dưới chỉ dùng khi chưa kết nối Google Sheet.  */
+var CAU_HINH_THI = {
+  linkGoogleSheet: "https://script.google.com/macros/s/AKfycbzWlT78EFJQeoMOvwDlarqvKriaQuEr_vCxuOXJBVouA8kElRBlLW2klY20VkYCGo1_sA/exec",   /* ví dụ: "https://script.google.com/macros/s/AKfy.../exec" */
+  matKhau: "",               /* mật khẩu chung cho mọi bài thi ("" = không cần mật khẩu) */
+  matKhauThiKetThuc: "",     /* mật khẩu riêng cho bài thi kết thúc mô đun */
+  danhSachLop: [],           /* ví dụ: ["KTML K25A", "KTML K25B"]  (để trống = học sinh tự gõ lớp) */
+  kiemTraBai:    { soCau: 10, phut: 15, xemDapAn: true  },   /* 15 đề kiểm tra cuối bài */
+  kiemTraDinhKy: { soCau: 20, phut: 30, xemDapAn: true  },   /* 4 đề kiểm tra định kỳ */
+  thiKetThuc:    { soCau: 40, phut: 60, xemDapAn: false },   /* thi kết thúc mô đun (lý thuyết) */
+  dongDeThi: []              /* mã đề tạm khóa, ví dụ ["ktmd"] hoặc ["dk3","dk4"] */
+};
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;height:100%;background:#0c1a2c;color:#ECF4FB;font-family:'Be Vietnam Pro','Segoe UI',Roboto,Arial,sans-serif}
+/* ================= THI ĐÁNH GIÁ (lớp phủ toàn màn hình, đơn vị px thật) ================= */
+.exr{--x-bg:#0c1a2c;--x-pn:#132a46;--x-pn2:#183251;--x-ln:#2C4C72;--x-ln2:#3B6290;--x-tx:#ECF4FB;--x-mu:#A3B9CF;--x-fr:#72D8F6;--x-ok:#4FD8A0;--x-bad:#FF7A6E;--x-vo:#FFD84A;--x-co:#E39D60;
+  position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;background:var(--x-bg);color:var(--x-tx);
+  font-family:'Be Vietnam Pro','Segoe UI',Roboto,Arial,sans-serif;font-size:clamp(15px,.45vw + 12px,19px);line-height:1.5;-webkit-text-size-adjust:100%}
+.exr[hidden],.exr [hidden]{display:none!important}
+.exr .exr-body:focus,.exr .exr-body:focus-visible{outline:none}
+.exr *{box-sizing:border-box}
+.exr button{font:inherit;color:inherit;cursor:pointer}
+.exr .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.exr :focus-visible{outline:3px solid var(--x-vo);outline-offset:2px}
+.exr-top{flex:none;display:flex;align-items:center;gap:12px;padding:8px 14px;padding-top:calc(8px + env(safe-area-inset-top));background:#0a1626;border-bottom:1px solid var(--x-ln)}
+.exr-brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.exr-logo{flex:none;width:38px;height:38px;border-radius:10px;background:var(--x-fr);color:#06223a;display:grid;place-items:center}
+.exr-logo svg{width:22px;height:22px}
+.exr-tt{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.exr-tt b{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:1.25em;font-weight:700;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exr-tt small{font-size:.7em;color:var(--x-mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exr-tm{flex:none;display:flex;align-items:center;gap:6px;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;font-size:1.45em;padding:4px 12px;border-radius:12px;background:#10243c;border:1px solid var(--x-ln2);font-variant-numeric:tabular-nums}
+.exr-tm svg{width:20px;height:20px}
+.exr-tm.low{color:var(--x-vo);border-color:var(--x-vo)}
+.exr-tm.crit{color:#fff;background:#b3261e;border-color:#ff8a80;animation:exblink 1s infinite}
+@keyframes exblink{50%{opacity:.6}}
+.exr-btn{flex:none;min-width:44px;height:44px;border-radius:12px;border:1px solid var(--x-ln2);background:#10243c;font-size:1.5em;line-height:1;padding:0 12px}
+.exr-btn.go{font-size:1em;font-weight:700;background:var(--x-co);color:#2a1505;border-color:var(--x-co);padding:0 16px}
+.exr-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;outline:0}
+.exr.running .exr-body{user-select:none;-webkit-user-select:none}
+.exw{max-width:1100px;margin:0 auto;padding:18px 16px calc(40px + env(safe-area-inset-bottom))}
+.exw.narrow{max-width:760px}
+.exhero h1{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:2.1em;line-height:1.05;margin:6px 0 6px;font-weight:700}
+.exhero p{color:var(--x-mu);margin:0 0 14px}
+.exw h2{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:1.5em;font-weight:700;margin:26px 0 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.exw h2 small{font-family:'Be Vietnam Pro',sans-serif;font-size:.55em;font-weight:500;color:var(--x-mu)}
+.exw h3{font-size:1.1em;margin:22px 0 8px}
+.exgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.exc{position:relative;text-align:left;display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:16px;border:1px solid var(--x-ln);background:var(--x-pn);min-height:96px;transition:border-color .15s,background .15s,transform .1s}
+.exc:hover{border-color:var(--x-fr);background:#183456}
+.exc:active{transform:scale(.98)}
+.exc-n{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;font-size:1.35em;color:var(--x-fr);line-height:1.1}
+.exc-t{font-weight:600;line-height:1.3}
+.exc-m{font-size:.85em;color:var(--x-mu);margin-top:auto;padding-top:4px}
+.exc-b{position:absolute;right:12px;top:12px;font-size:.75em;font-weight:700;color:#06231a;background:var(--x-ok);border-radius:999px;padding:2px 9px}
+.exc-b.lk{background:#3a4a5e;color:#d4dde8}
+.exc.lock{opacity:.55;cursor:not-allowed}
+.exgrid .exc[data-ex=ktmd]{border-color:var(--x-co);background:linear-gradient(160deg,#2b2a2a,#1c2a3c)}
+.exgrid .exc[data-ex=ktmd] .exc-n{color:var(--x-co)}
+.exresume{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 16px;border-radius:16px;background:rgba(255,216,74,.1);border:1px solid rgba(255,216,74,.5);margin:6px 0 4px}
+.exresume b{display:block}.exresume span{font-size:.88em;color:var(--x-mu)}
+.exnote{padding:12px 14px;border-radius:12px;background:rgba(114,216,246,.08);border:1px solid rgba(114,216,246,.35);font-size:.92em;margin:8px 0}
+.exnote.alert{background:rgba(255,122,110,.12);border-color:rgba(255,122,110,.55);font-weight:600}
+.exhist{display:flex;flex-direction:column;gap:6px}
+.exhist>div{display:grid;grid-template-columns:auto 1fr auto auto;gap:4px 12px;align-items:center;padding:8px 12px;border-radius:12px;background:var(--x-pn);font-size:.9em}
+.exhist .d{color:var(--x-mu);font-size:.85em}
+.exhist .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exhist b{font-family:'Barlow Condensed',sans-serif;font-size:1.3em;color:var(--x-vo)}
+.exhist .s{font-size:.75em;font-weight:700;border-radius:999px;padding:2px 8px}
+.exhist .s.ok{background:rgba(79,216,160,.18);color:var(--x-ok)}.exhist .s.pd{background:rgba(255,216,74,.15);color:var(--x-vo)}.exhist .s.lc{background:#25384f;color:var(--x-mu)}
+.exfoot{margin-top:30px;padding-top:14px;border-top:1px solid var(--x-ln);display:flex;flex-direction:column;gap:6px;font-size:.8em;color:var(--x-mu)}
+.exlink{background:none;border:0;padding:6px 0;color:var(--x-fr);text-decoration:underline;text-align:left;font-size:1em}
+.exback{background:none;border:0;color:var(--x-fr);padding:6px 0 10px;font-weight:600}
+.excard{background:var(--x-pn);border:1px solid var(--x-ln);border-radius:20px;padding:20px 18px}
+.excard h2{margin:2px 0 10px;font-size:1.6em;line-height:1.15}
+.exk{font-size:.8em;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--x-co)}
+.exmeta{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.exmeta span{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#0e2036;border:1px solid var(--x-ln);font-size:.88em;font-weight:600}
+.exmeta span.sc{font-weight:500;color:var(--x-mu)}
+.exmeta svg{width:18px;height:18px}
+.exform{display:flex;flex-direction:column;gap:12px}
+.exform label>span{display:block;font-weight:600;font-size:.92em;margin-bottom:4px}
+.exform small{color:var(--x-mu);font-weight:400}
+.exform input:not([type=checkbox]),.exform select{width:100%;font:inherit;font-size:max(16px,1em);padding:12px 14px;border-radius:12px;border:1px solid var(--x-ln2);background:#0b1828;color:#fff;min-height:50px}
+.exform input:focus,.exform select:focus{border-color:var(--x-fr);outline:2px solid rgba(114,216,246,.35)}
+.exform .chk{display:flex;gap:10px;align-items:flex-start;font-size:.92em;cursor:pointer}
+.exform .chk input{width:24px;height:24px;flex:none;margin:1px 0 0;accent-color:var(--x-fr)}
+.exform .chk span{font-weight:500;margin:0}
+.exerr{color:var(--x-bad);font-weight:600;min-height:1.2em;font-size:.92em}
+.exbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 18px;border-radius:14px;border:1px solid var(--x-ln2);background:#1d3b5e;font-weight:600;text-align:center;transition:background .15s,transform .1s}
+.exbtn:hover{background:#25486f}
+.exbtn:active{transform:scale(.97)}
+.exbtn.pri{background:var(--x-fr);border-color:var(--x-fr);color:#06223a}
+.exbtn.pri:hover{background:#9ae4fa}
+.exbtn.go{background:var(--x-co);border-color:var(--x-co);color:#2a1505}
+.exbtn.xl{min-height:56px;font-size:1.1em;width:100%}
+.exbtn.mini{min-height:38px;padding:6px 12px;font-size:.9em}
+.exbtn[disabled]{opacity:.4;cursor:default;transform:none}
+.exbtn svg{width:20px;height:20px}
+.exrules{margin:18px 0 0;padding-left:20px;color:var(--x-mu);font-size:.9em}
+.exrules li{margin-bottom:5px}
+.exrules b{color:#fff}
+.c-bad{color:var(--x-bad)}
+
+/* --- làm bài --- */
+.exrun{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:20px;padding:14px 14px calc(30px + env(safe-area-inset-bottom))}
+.exq-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.exq-n{font-family:'Barlow Condensed',sans-serif;font-size:1.3em;color:var(--x-co);font-weight:600}
+.exq-n b{font-size:1.4em;color:#fff}
+.exflag{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--x-ln2);background:transparent;border-radius:999px;padding:6px 12px;font-size:.85em;color:var(--x-mu);min-height:40px}
+.exflag svg{width:18px;height:18px}
+.exflag.on{background:rgba(255,216,74,.16);border-color:var(--x-vo);color:var(--x-vo)}
+.exbar{height:6px;border-radius:4px;background:#1a3150;overflow:hidden;margin-bottom:16px}
+.exbar i{display:block;height:100%;background:linear-gradient(90deg,var(--x-co),#f2c08f);transition:width .3s}
+.exq-t{font-size:1.15em;font-weight:600;line-height:1.45;margin:0 0 16px;color:#fff}
+.exops{display:flex;flex-direction:column;gap:10px}
+.exop{display:flex;align-items:center;gap:12px;text-align:left;width:100%;min-height:58px;padding:10px 14px;border-radius:14px;border:2px solid var(--x-ln);background:#112640;line-height:1.35;transition:border-color .12s,background .12s}
+.exop:hover{border-color:var(--x-ln2);background:#15304f}
+.exop .L{flex:none;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.25em;background:#0b1828;color:var(--x-fr);border:1px solid var(--x-ln)}
+.exop.on{border-color:var(--x-fr);background:#17426a;box-shadow:0 0 0 3px rgba(114,216,246,.18)}
+.exop.on .L{background:var(--x-fr);color:#06223a;border-color:var(--x-fr)}
+.exnav{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;margin-top:18px;position:sticky;bottom:0;padding:10px 0 calc(6px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--x-bg) 30%)}
+.exnav .gr{padding:10px 12px;font-size:.88em;white-space:nowrap}
+.exnav .sh{display:none}
+.exnav .nx.last{background:var(--x-co);border-color:var(--x-co);color:#2a1505}
+.exwho{font-size:.8em;color:var(--x-mu);margin:10px 0 0;text-align:center}
+.exside{position:fixed;left:0;right:0;bottom:0;z-index:5;max-height:78vh;overflow:auto;background:#10233b;border-top:1px solid var(--x-ln2);border-radius:20px 20px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .25s ease;box-shadow:0 -20px 50px rgba(0,0,0,.5)}
+.exr.side .exside{transform:none}
+.exside-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.exside-x{width:40px;height:40px;border-radius:50%;border:1px solid var(--x-ln2);background:#0b1828;font-size:1.4em;line-height:1}
+.exgridq{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:8px}
+.exgridq button{height:48px;border-radius:12px;border:1px solid var(--x-ln2);background:#0b1828;font-weight:700;position:relative}
+.exgridq button.a{background:#1b5a45;border-color:var(--x-ok)}
+.exgridq button.f::after{content:"";position:absolute;right:4px;top:4px;width:9px;height:9px;border-radius:50%;background:var(--x-vo)}
+.exgridq button.now{box-shadow:0 0 0 3px var(--x-fr)}
+.exlegend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8em;color:var(--x-mu);margin:12px 0}
+.exlegend i{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid var(--x-ln2);background:#0b1828;vertical-align:-2px;margin-right:5px}
+.exlegend i.a{background:#1b5a45;border-color:var(--x-ok)}
+.exlegend i.f{background:var(--x-vo);border-radius:50%;border:0}
+@media (min-width:960px){
+  .exrun{grid-template-columns:1fr 300px;align-items:start;padding-top:22px}
+  .exside{position:sticky;top:12px;transform:none;max-height:none;border:1px solid var(--x-ln);border-radius:18px;box-shadow:none;z-index:auto}
+  .exside-x,.exnav .gr{display:none}
+  .exnav{grid-template-columns:1fr 1fr}
+  .exq-t{font-size:1.3em}
+}
+.exr-modal{position:absolute;inset:0;z-index:10;background:rgba(3,10,20,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+.exr-modal[hidden]{display:none}
+.exdlg{width:min(460px,100%);background:#163050;border:1px solid var(--x-ln2);border-radius:20px;padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:expop .18s ease}
+.exdlg h3{margin:0 0 8px;font-size:1.3em}
+.exdlg-b{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.exdlg-b .exbtn{flex:1}
+@keyframes expop{from{transform:scale(.94);opacity:0}}
+.exr-warn{position:absolute;left:12px;right:12px;top:calc(70px + env(safe-area-inset-top));z-index:9;max-width:620px;margin:0 auto;padding:12px 44px 12px 14px;border-radius:14px;background:#5c1d1a;border:1px solid #ff8a80;font-size:.92em;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.exr-warn[hidden]{display:none}
+.exr-warn button{position:absolute;right:6px;top:6px;width:34px;height:34px;border:0;background:transparent;font-size:1.3em}
+
+/* --- kết quả --- */
+.exres{text-align:center}
+.exscore{display:flex;flex-direction:column;align-items:center;margin:8px 0 12px}
+.exscore b{font-family:'Barlow Condensed',sans-serif;font-size:4.6em;line-height:1;color:var(--x-vo)}
+.exscore.fail b{color:var(--x-bad)}
+.exscore span{color:var(--x-mu);font-weight:600}
+.exscore em{font-style:normal;font-weight:700;margin-top:6px;padding:3px 12px;border-radius:999px;background:rgba(255,216,74,.14);color:var(--x-vo)}
+.exscore.fail em{background:rgba(255,122,110,.15);color:var(--x-bad)}
+.exstat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.exstat div{background:#0e2036;border:1px solid var(--x-ln);border-radius:14px;padding:10px 6px}
+.exstat b{display:block;font-family:'Barlow Condensed',sans-serif;font-size:1.6em;line-height:1.1}
+.exstat span{font-size:.78em;color:var(--x-mu);display:block;line-height:1.25}
+.exwho2{font-size:.88em;color:var(--x-mu);margin:12px 0}
+.exwho2 b{color:#fff}
+.exsend{margin:12px 0;padding:12px 14px;border-radius:14px;font-size:.92em;text-align:left;display:block}
+.exsend[hidden]{display:none}
+.exsend.wait{background:#10243c;border:1px solid var(--x-ln2)}
+.exsend.ok{background:rgba(79,216,160,.14);border:1px solid rgba(79,216,160,.5);color:#bff3dc;font-weight:600}
+.exsend.pd{background:rgba(255,216,74,.1);border:1px solid rgba(255,216,74,.45)}
+.exsend.lc{background:rgba(114,216,246,.08);border:1px solid rgba(114,216,246,.35)}
+.exsend .exbtn{margin-top:8px}
+.exsend .sp{display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid var(--x-fr);border-right-color:transparent;animation:exspin .8s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes exspin{to{transform:rotate(360deg)}}
+.exbtns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:8px}
+.exbtns .exbtn{flex:1 1 200px}
+.exbtns.left{justify-content:flex-start}
+.exsmall{font-size:.82em;color:var(--x-mu)}
+.exrev{margin-top:20px}
+.exrev h3{font-size:1.3em}
+.exrv{background:var(--x-pn);border:1px solid var(--x-ln);border-left:5px solid var(--x-ok);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.exrv.no{border-left-color:var(--x-bad)}
+.exrv-h{display:flex;justify-content:space-between;font-size:.9em}
+.exrv-h span{font-weight:700;color:var(--x-ok)}.exrv.no .exrv-h span{color:var(--x-bad)}
+.exrv .q{font-weight:600;margin:4px 0 8px}
+.exrv ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.exrv li{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:10px;font-size:.92em}
+.exrv li .L{flex:none;font-weight:700;width:24px;color:var(--x-mu)}
+.exrv li.r{background:rgba(79,216,160,.14);color:#cdf5e4}
+.exrv li.w{background:rgba(255,122,110,.14);color:#ffd0ca}
+.exrv li em{margin-left:auto;font-size:.8em;font-style:normal;color:var(--x-mu);white-space:nowrap}
+.exrv .e{font-size:.88em;color:var(--x-mu);margin:8px 0 0}
+.exsteps{padding-left:22px;margin:0}
+.exsteps li{margin-bottom:6px}
+.exr code{font-family:Consolas,monospace;font-size:.88em;background:#0b1828;border:1px solid var(--x-ln);border-radius:6px;padding:1px 6px;word-break:break-all}
+.extb{width:100%;border-collapse:collapse;font-size:.9em}
+.extb th,.extb td{border:1px solid var(--x-ln);padding:6px 8px;text-align:left}
+.extb th{background:#1d3b5e}
+html.exam-open,html.exam-open body{overflow:hidden}
+@media (prefers-reduced-motion:reduce){.exr *{animation:none!important;transition:none!important}}
+
+@media (max-width:520px){
+  .exr.running .exr-tt{display:none}
+  .exr.running .exr-brand{flex:0 0 auto}
+  .exr.running .exr-top{justify-content:space-between}
+  .exnav .lg{display:none}
+  .exnav .sh{display:inline}
+  .exr .exr-tm{font-size:1.35em}
+}
+.exq-img{display:block;max-width:100%;max-height:42vh;margin:0 0 12px;border-radius:12px;background:#fff;border:1px solid var(--x-ln)}
+.exq-img.sm{max-height:200px}
+.exnote.msg{background:rgba(255,216,74,.1);border-color:rgba(255,216,74,.45);font-weight:600;white-space:pre-line}
+</style></head>
+<body><noscript>Trình duyệt cần bật JavaScript để làm bài thi.</noscript>
+<script>window.EXAM_STANDALONE=true;</script>
+<script>/* ================= Ngân hàng câu hỏi trắc nghiệm ================= */
+window.QZ={};
+QZ.b1=[
+ {q:'Bốn thiết bị chính bắt buộc phải có trong hệ thống lạnh của tủ lạnh là:',o:['Máy nén, dàn ngưng, thiết bị tiết lưu, dàn bay hơi','Máy nén, quạt, thermostat, phin sấy lọc','Dàn ngưng, dàn bay hơi, timer, điện trở xả đá','Máy nén, rơ le khởi động, rơ le bảo vệ, tụ điện'],a:0,e:'Thiếu một trong bốn thiết bị máy nén – dàn ngưng – tiết lưu – dàn bay hơi thì chu trình lạnh không thực hiện được.'},
+ {q:'Tủ lạnh làm lạnh thực phẩm nhờ quá trình nào của gas lạnh?',o:['Gas ngưng tụ trong dàn lạnh','Gas sôi (bay hơi) trong dàn lạnh và thu nhiệt','Gas bị nén trong máy nén','Gas đi qua phin sấy lọc'],a:1,e:'Chất lỏng bay hơi thì thu nhiệt. Gas lỏng áp thấp sôi trong dàn bay hơi, lấy nhiệt của không khí và thực phẩm trong tủ.'},
+ {q:'Gas đi ra khỏi máy nén (đường đẩy) ở trạng thái:',o:['Lỏng, áp suất thấp','Hơi, áp suất thấp, lạnh','Hơi, áp suất cao, nhiệt độ cao','Lỏng, áp suất cao, nhiệt độ thấp'],a:2,e:'Máy nén nén hơi gas lên áp suất cao, nhiệt độ cao rồi đẩy sang dàn ngưng.'},
+ {q:'Nhiệm vụ của ống mao (cáp) trong tủ lạnh là:',o:['Lọc cặn bẩn và hút ẩm','Giảm áp suất, nhiệt độ và khống chế lưu lượng gas vào dàn bay hơi','Thải nhiệt ra môi trường','Tách dầu ra khỏi gas'],a:1,e:'Ống mao là thiết bị tiết lưu: tiết lưu gas lỏng từ áp suất ngưng tụ xuống áp suất bay hơi.'},
+ {q:'Phin sấy lọc được lắp ở vị trí nào?',o:['Giữa dàn bay hơi và máy nén','Giữa máy nén và dàn ngưng','Giữa dàn ngưng và ống mao','Trong ngăn đá'],a:2,e:'Phin sấy lọc lắp sau dàn ngưng, ngay trước ống mao để bảo vệ ống mao khỏi tắc bẩn, tắc ẩm.'},
+ {q:'Đặc điểm nào đúng với tủ lạnh gián tiếp (quạt gió)?',o:['Dàn lạnh lộ trong ngăn đá, phải xả tuyết bằng tay','Dàn lạnh giấu sau vách, có quạt thổi gió lạnh và xả đá tự động','Không có thermostat','Không cần máy nén'],a:1,e:'Tủ gián tiếp dùng quạt đưa gió lạnh tới các ngăn, tuyết bám trên dàn được điện trở xả đá làm tan theo chu kỳ.'},
+ {q:'Ở áp suất khí quyển, gas R134a sôi ở khoảng:',o:['+100 °C','0 °C','−26 °C','−80 °C'],a:2,e:'R134a sôi ở khoảng −26,3 °C; R600a khoảng −11,7 °C. Vì vậy không để gas lỏng phun vào da – gây bỏng lạnh.'},
+ {q:'Vì sao ống mao thường được hàn áp sát vào ống hút?',o:['Để tiết kiệm ống','Để trao đổi nhiệt: lỏng trong ống mao lạnh thêm, ống hút không đọng sương','Để ống mao không bị rung','Để tăng áp suất hút'],a:1,e:'Ghép ống mao với ống hút tạo thành bộ trao đổi nhiệt hồi nhiệt, tăng năng suất lạnh và tránh đọng sương đường hút.'},
+ {q:'Khi tủ chạy ổn định, vị trí nào nóng nhất?',o:['Ống hút về block','Dàn bay hơi','Ống đẩy gần đầu ra máy nén','Đầu ra ống mao'],a:2,e:'Hơi gas vừa được nén ở đầu đẩy có nhiệt độ cao nhất (có thể 60–90 °C).'},
+ {q:'Khi máy nén dừng vài phút, áp suất phía cao áp và thấp áp:',o:['Giữ nguyên chênh lệch','Cân bằng nhau nhờ ống mao','Phía thấp áp tăng cao hơn phía cao áp','Đều giảm về chân không'],a:1,e:'Ống mao luôn thông nên gas tự chảy cho tới khi áp suất hai phía bằng nhau – giúp block khởi động lại nhẹ nhàng.'}
+];
+QZ.b2=[
+ {q:'Trên nhãn tủ ghi "R600a – 45 g". Thông số này cho biết:',o:['Công suất máy nén 45 W','Loại gas và khối lượng gas nạp','Dung tích ngăn đông 45 lít','Nhiệt độ ngăn đông −45 °C'],a:1,e:'Đây là loại môi chất lạnh và lượng gas nạp chuẩn – căn cứ để nạp gas khi sửa chữa.'},
+ {q:'Ngăn đông ký hiệu ★★★ có nhiệt độ:',o:['≤ −6 °C','≤ −12 °C','≤ −18 °C','0 đến 5 °C'],a:2,e:'★ ≤ −6 °C; ★★ ≤ −12 °C; ★★★ ≤ −18 °C; ★★★★ ≤ −18 °C và có khả năng cấp đông nhanh.'},
+ {q:'Nhiệt độ thích hợp của ngăn mát tủ lạnh là:',o:['−18 °C','−6 đến −2 °C','0 đến 5 °C','10 đến 15 °C'],a:2,e:'Ngăn mát thường giữ 0 – 5 °C (tốt nhất khoảng 3 – 4 °C).'},
+ {q:'Block chạy 15 phút, nghỉ 15 phút. Hệ số thời gian làm việc b bằng:',o:['0,25','0,5','1','2'],a:1,e:'b = 15 ÷ (15 + 15) = 0,5.'},
+ {q:'Tủ lạnh đặt ở Việt Nam nên chọn cấp khí hậu:',o:['SN','N','ST hoặc T','Cấp nào cũng được'],a:2,e:'ST (16 – 38 °C) và T (16 – 43 °C) phù hợp khí hậu nóng.'},
+ {q:'Block chạy gần như liên tục (b ≈ 1) có thể do:',o:['Núm thermostat để mức ấm nhất','Dàn nóng bẩn, ron cửa hở, thiếu gas','Tủ vừa xả đá xong','Phòng có điều hòa mát'],a:1,e:'Các nguyên nhân làm giảm khả năng làm lạnh hoặc tăng tải khiến block không đủ lạnh để ngắt.'},
+ {q:'Block có công suất lạnh 120 W, COP = 1,5. Công suất điện tiêu thụ là:',o:['80 W','120 W','180 W','1,5 W'],a:0,e:'P = Q ÷ COP = 120 ÷ 1,5 = 80 W.'},
+ {q:'Tủ có công suất 100 W, mỗi ngày block chạy 12 giờ. Điện năng tiêu thụ mỗi ngày:',o:['0,12 kWh','1,2 kWh','12 kWh','120 kWh'],a:1,e:'A = P × t = 0,1 kW × 12 h = 1,2 kWh.'},
+ {q:'Khi đo dòng điện tủ lạnh bằng ampe kìm, phải:',o:['Kẹp cả 2 dây L và N','Kẹp 1 dây (L hoặc N)','Kẹp dây tiếp địa','Mắc ampe kìm nối tiếp'],a:1,e:'Kẹp cả 2 dây thì từ trường triệt tiêu, đồng hồ chỉ gần 0.'},
+ {q:'Khi chọn block thay thế, cách làm đúng là:',o:['Chỉ cần cùng HP','Chọn block càng lớn càng tốt','Khớp loại gas, điện áp, công suất lạnh ở dải nhiệt độ làm việc, kiểu khởi động','Chọn theo kích thước vỏ'],a:2,e:'HP chỉ là giá trị danh định; phải tra datasheet để khớp các thông số chính.'}
+];
+QZ.b3=[
+ {q:'Cuộn chạy (R) của động cơ block có đặc điểm:',o:['Dây nhỏ, nhiều vòng, điện trở lớn','Dây to, ít vòng, điện trở nhỏ','Chỉ làm việc lúc khởi động','Không nối với chân C'],a:1,e:'Cuộn chạy dây to, ít vòng nên điện trở nhỏ, làm việc liên tục.'},
+ {q:'Đo 3 cặp chân block được: 1–2 = 30 Ω; 1–3 = 12 Ω; 2–3 = 18 Ω. Chân C là:',o:['Chân 1','Chân 2','Chân 3','Không xác định được'],a:2,e:'Cặp lớn nhất 1–2 (30 Ω) là R–S → chân còn lại (3) là C. Từ C: 3–1 = 12 Ω là R, 3–2 = 18 Ω là S.'},
+ {q:'Đo 3 cặp chân block được: 1–2 = 30 Ω; 1–3 = 12 Ω; 2–3 = 18 Ω. Chân R (cuộn chạy) là:',o:['Chân 1','Chân 2','Chân 3','Chân 1 hoặc 2'],a:0,e:'Từ C (chân 3): giá trị nhỏ hơn (12 Ω, tới chân 1) là R.'},
+ {q:'Hệ thức đúng giữa các điện trở của block còn tốt:',o:['R_RS = R_CR − R_CS','R_RS = R_CR + R_CS','R_CR = R_CS','R_CS = 0'],a:1,e:'Vì R–S là hai cuộn dây nối tiếp qua điểm chung C.'},
+ {q:'Rơ le khởi động PTC ngắt cuộn đề nhờ:',o:['Lò xo','Lõi sắt rơi xuống','Điện trở PTC tăng rất lớn khi nóng lên','Tụ điện'],a:2,e:'PTC có hệ số nhiệt điện trở dương: nóng lên thì điện trở tăng mạnh, gần như ngắt cuộn đề.'},
+ {q:'Rơ le khởi động kiểu dòng điện phải lắp:',o:['Chiều nào cũng được','Đúng chiều, vì tiếp điểm hoạt động nhờ trọng lực lõi sắt','Nằm ngang','Lộn ngược'],a:1,e:'Lõi sắt rơi xuống bằng trọng lực để mở tiếp điểm; lắp sai chiều cuộn đề sẽ không được ngắt.'},
+ {q:'Cấp điện: block không chạy, tẹc-mít "tạch" khoảng 10 giây một lần; cuộn dây đo bình thường, rơ le khởi động tốt. Kết luận:',o:['Thiếu gas','Block kẹt cơ','Thermostat hỏng','Đèn hỏng'],a:1,e:'Đặc trưng của block kẹt cơ: dòng lớn kéo dài làm tẹc-mít nhảy liên tục.'},
+ {q:'Dùng đèn thử nối tiếp, cặp chân làm đèn TỐI NHẤT là:',o:['C–R','C–S','R–S','Không xác định'],a:2,e:'R–S có điện trở lớn nhất nên dòng nhỏ nhất, đèn tối nhất.'},
+ {q:'Rơ le bảo vệ (tẹc-mít) được mắc:',o:['Song song với block','Nối tiếp chân C, áp sát vỏ block','Nối tiếp cuộn đề','Giữa L và N'],a:1,e:'Nối tiếp chân C để chịu dòng toàn bộ động cơ, áp sát vỏ để cảm nhận nhiệt độ block.'},
+ {q:'Đo chân block với vỏ thấy thông mạch. Block bị:',o:['Kẹt cơ','Chạm vỏ','Đứt cuộn đề','Bình thường'],a:1,e:'Cuộn dây chạm vỏ – nguy hiểm, phải thay block.'}
+];
+QZ.b4=[
+ {q:'Đo điện trở cuộn dây mô tơ timer xả đá (giữa chân 3 và chân 1) còn tốt được khoảng:',o:['0 Ω','vài Ω','18 – 25 kΩ','∞'],a:2,e:'Cuộn dây mô tơ timer nhiều vòng dây rất nhỏ nên điện trở khoảng 18 – 25 kΩ; đo được ∞ là đứt cuộn dây.'},
+ {q:'Chân 1 của timer xả đá nối tới:',o:['Dây L trước thermostat','Máy nén','Đầu ra của sò lạnh','Dây tiếp địa'],a:2,e:'Chân 1 nối tới đầu ra sò lạnh (điểm nối với cầu chì nhiệt). Nhờ vậy mô tơ timer có đường về N qua điện trở xả đá.'},
+ {q:'Nút nhấn cửa 3 cực ở ngăn mát: khi đóng cửa (nút bị ấn) thì:',o:['COM – NC thông, đèn sáng','COM – NO thông, quạt chạy, đèn tắt','Cả đèn và quạt cùng chạy','Máy nén dừng'],a:1,e:'Nhả (cửa mở): COM – NC thông, đèn sáng, quạt dừng. Ấn (cửa đóng): COM – NO thông, quạt chạy, đèn tắt.'},
+ {q:'Quạt dàn lạnh loại vòng chập tự khởi động được là nhờ:',o:['Tụ điện','Vòng đồng ngắn mạch ở cực từ làm lệch pha từ thông','Rơ le PTC','Board điều khiển'],a:1,e:'Vòng chập (shaded pole) tạo từ thông lệch pha, sinh từ trường quay yếu đủ để roto lồng sóc tự khởi động.'},
+ {q:'Bộ phận cảm nhận nhiệt độ của rơ le bảo vệ (tẹc-mít) là:',o:['Viên gốm PTC','Đĩa lưỡng kim','Hộp xếp','Bầu cảm biến chứa gas'],a:1,e:'Lưỡng kim gồm 2 kim loại giãn nở khác nhau, nóng lên thì cong và mở tiếp điểm.'},
+ {q:'Rơ le bảo vệ tốt khi đo ở nhiệt độ thường:',o:['Hở mạch','Thông mạch (gần 0 Ω)','Khoảng 300 Ω','Khoảng vài kΩ'],a:1,e:'Tiếp điểm thường đóng ở nhiệt độ thường.'},
+ {q:'Thermostat đóng – ngắt máy nén dựa vào:',o:['Thời gian','Nhiệt độ dàn lạnh qua bầu cảm biến','Dòng điện block','Áp suất đẩy'],a:1,e:'Bầu cảm biến chứa môi chất giãn nở theo nhiệt độ, làm hộp xếp đóng/ngắt tiếp điểm.'},
+ {q:'Đấu tắt 2 dây thermostat, cấp điện block chạy được. Kết luận:',o:['Block hỏng','Thermostat hỏng','Rơ le khởi động hỏng','Sò lạnh hỏng'],a:1,e:'Bỏ qua thermostat mà block chạy chứng tỏ tiếp điểm thermostat không đóng.'},
+ {q:'Điện áp chịu đựng của tụ khởi động dùng ở lưới 220 V tối thiểu khoảng:',o:['110 V','220 V','330 V','50 V'],a:2,e:'Điện áp tụ ≥ 1,5 × 220 V ≈ 330 V (thường chọn 370 – 450 V).'},
+ {q:'Theo sơ đồ timer xả đá dùng trong bài (chân 3 là chân chung sau thermostat), ở chế độ LÀM LẠNH tiếp điểm thông giữa:',o:['3 – 2','3 – 1','3 – 4','2 – 1'],a:2,e:'3 – 4 cấp điện cho máy nén (và quạt). Xả đá: 3 – 2 cấp điện tới sò lạnh. Mô tơ timer nối giữa chân 3 và chân 1, điện trở cuộn dây 18 – 25 kΩ.'},
+ {q:'Sò lạnh (bimetal xả đá) ở nhiệt độ phòng đo thấy:',o:['Thông mạch','Hở mạch','Khoảng 2 kΩ','Khoảng 300 Ω'],a:1,e:'Sò lạnh chỉ đóng khi lạnh (khoảng −4 °C), mở khi ấm (khoảng +13 °C).'},
+ {q:'Cầu chì nhiệt (sò nóng) có đặc điểm:',o:['Tự phục hồi khi nguội','Đứt khi quá nhiệt khoảng 70 – 76 °C, không tự phục hồi','Đóng khi lạnh','Mắc song song điện trở xả đá'],a:1,e:'Cầu chì nhiệt là bảo vệ cuối cùng, đứt thì phải thay (và thay luôn sò lạnh).'},
+ {q:'Điện trở xả đá 150 W, 220 V có điện trở khoảng:',o:['1,5 Ω','32 Ω','323 Ω','3.230 Ω'],a:2,e:'R = U² ÷ P = 48.400 ÷ 150 ≈ 323 Ω.'},
+ {q:'Trên sơ đồ tủ lạnh, ký hiệu "DEF. THERMO" là:',o:['Điện trở xả đá','Sò lạnh (rơ le nhiệt xả đá)','Cầu chì nhiệt','Thermostat ngăn mát'],a:1,e:'DEF. THERMO (defrost thermostat) – sò lạnh; DEF. HEATER là điện trở xả đá; TEMP. FUSE là cầu chì nhiệt.'}
+];
+QZ.b5=[
+ {q:'Tủ gián tiếp dùng 2 nút nhấn cửa (3 cực ngăn mát, 2 cực ngăn đá). Mở cửa ngăn đá, cửa ngăn mát đóng thì:',o:['Quạt vẫn chạy','Quạt dừng, đèn ngăn mát tắt','Đèn ngăn mát sáng','Máy nén dừng'],a:1,e:'Nút 2 cực ngăn đá mắc nối tiếp trong nhánh quạt: mở cửa ngăn đá thì nút nhả, hở mạch, quạt dừng. Đèn chỉ sáng khi mở cửa ngăn mát.'},
+ {q:'Ở chế độ xả đá, vì sao mô tơ timer đứng yên khi điện trở đang nóng?',o:['Cuộn dây mô tơ bị đứt','Chân 1 và chân 3 cùng điện thế (mô tơ bị nối tắt qua tiếp điểm 3–2 và sò lạnh đóng)','Thermostat mở','Cầu chì nhiệt đứt'],a:1,e:'Khi sò lạnh đóng, chân 3 → 2 → sò lạnh → điểm X → chân 1: hai đầu cuộn dây mô tơ cùng điện thế nên không có dòng qua mô tơ. Sò lạnh mở thì mô tơ chạy lại.'},
+ {q:'Trong mạch tủ trực tiếp, đèn sáng khi mở cửa nhưng block không chạy. Điều này chứng tỏ:',o:['Mất nguồn vào tủ','Nguồn vào tủ có điện, cần kiểm tra nhánh block','Bóng đèn hỏng','Công tắc cửa hỏng'],a:1,e:'Nhánh đèn độc lập lấy điện từ nguồn – đèn sáng là nguồn còn.'},
+ {q:'Ở mạch tủ gián tiếp, công tắc cửa thường điều khiển:',o:['Máy nén và điện trở','Đèn và quạt dàn lạnh','Timer','Thermostat'],a:1,e:'Mở cửa: đèn sáng, quạt dừng để gió lạnh không thổi ra ngoài.'},
+ {q:'Khi timer chuyển sang xả đá, thiết bị nào dừng?',o:['Đèn','Block và quạt','Mô tơ timer','Điện trở xả đá'],a:1,e:'Timer chuyển tiếp điểm từ 3–4 (block, quạt) sang 3–2 (nhánh xả đá).'},
+ {q:'Điện trở xả đá ngừng nóng trước khi hết thời gian xả đá của timer là nhờ:',o:['Thermostat','Sò lạnh mở khi dàn ấm lên','Cầu chì nhiệt đứt','Công tắc cửa'],a:1,e:'Sò lạnh mở ở khoảng +13 °C, ngắt điện trở khi đã tan hết tuyết.'},
+ {q:'Kiểm tra nguội: đo 2 chân phích được 0 Ω. Em phải:',o:['Cấp điện thử','Không cấp điện, tìm chỗ chập mạch','Thay cầu chì','Bình thường'],a:1,e:'0 Ω giữa L và N là chập mạch – cấp điện sẽ nhảy CB, cháy thiết bị.'},
+ {q:'Ở nhiệt độ phòng, vặn timer sang xả đá rồi đo 2 chân phích không thấy điện trở xả đá vì:',o:['Điện trở đứt','Sò lạnh đang hở mạch','Timer hỏng','Thermostat hở'],a:1,e:'Sò lạnh chỉ đóng khi lạnh; muốn kiểm tra nhánh xả đá ở nhiệt độ phòng phải nối tắt tạm sò lạnh.'},
+ {q:'Điện áp nguồn cho phép đối với tủ 220 V khoảng:',o:['150 – 180 V','198 – 242 V','250 – 280 V','110 – 130 V'],a:1,e:'220 V ± 10% tức khoảng 198 – 242 V.'},
+ {q:'Tủ điện tử dùng gì thay cho thermostat cơ và sò lạnh?',o:['Cầu chì','Cảm biến nhiệt độ NTC đọc bởi board','Tụ điện','Rơ le dòng'],a:1,e:'Board đọc cảm biến (R-sensor, F-sensor, D-sensor) để điều khiển block, xả đá, quạt.'},
+ {q:'Lắp mạch xong cấp điện thì block ù ù không chạy, tẹc-mít nhảy. Nguyên nhân hay gặp:',o:['Đấu nhầm chân R và S hoặc rơ le sai loại','Đèn hỏng','Công tắc cửa hỏng','Dây tiếp địa chưa nối'],a:0,e:'Nhầm R – S làm cuộn đề nhận điện liên tục hoặc block không đủ mômen khởi động.'},
+ {q:'Nhánh xả đá trong tủ gián tiếp gồm (nối tiếp):',o:['Thermostat – quạt – đèn','Sò lạnh – điện trở xả đá – cầu chì nhiệt','PTC – block – OLP','Công tắc cửa – đèn'],a:1,e:'Từ chân 2 timer qua sò lạnh, điện trở xả đá, cầu chì nhiệt về N.'}
+];
+QZ.inv=[
+ {q:'Tủ lạnh Inverter tiết kiệm điện chủ yếu nhờ:',o:['Dùng gas đặc biệt','Thay đổi tốc độ máy nén theo nhu cầu lạnh thay vì bật – tắt','Không có xả đá','Dàn nóng lớn hơn'],a:1,e:'Block chạy liên tục ở tốc độ thấp khi đủ lạnh, tránh dòng khởi động lớn và tổn hao đóng ngắt.'},
+ {q:'Block tủ Inverter có 3 chân ký hiệu:',o:['C – R – S','C – M – A','U – V – W','L – N – E'],a:2,e:'Ba cuộn dây giống nhau nên ký hiệu U – V – W, điện trở 3 cặp chân bằng nhau.'},
+ {q:'Đo 3 cặp chân block Inverter còn tốt thấy:',o:['Một cặp lớn gấp đôi','Ba cặp bằng nhau','Ba cặp đều ∞','Một cặp bằng 0'],a:1,e:'Stato 3 pha đối xứng nên điện trở các cặp bằng nhau (vài Ω).'},
+ {q:'Khối tạo ra điện áp 3 pha tần số thay đổi cấp cho block là:',o:['Khối chỉnh lưu','Khối công suất IPM','Nguồn xung 12 V','Cảm biến'],a:1,e:'IPM gồm 6 transistor công suất đóng cắt điện áp DC theo xung PWM.'},
+ {q:'Sau khi rút phích tủ Inverter, nguy hiểm còn lại trên board là:',o:['Không còn gì','Tụ lọc DC còn tích điện áp cao (khoảng 310 V)','Dàn lạnh còn lạnh','Quạt còn quay'],a:1,e:'Phải chờ tụ xả và đo điện áp tụ trước khi chạm vào board.'},
+ {q:'Muốn thử block Inverter còn chạy không, cách làm SAI là:',o:['Đo điện trở 3 cuộn dây','Đo cách điện với vỏ','Cấp trực tiếp 220 V vào 2 chân block','Chạy qua board theo hướng dẫn hãng'],a:2,e:'Block BLDC không chạy bằng điện xoay chiều lưới; cấp trực tiếp sẽ làm hỏng block.'},
+ {q:'Máy nén Linear khác máy nén piston thường ở chỗ:',o:['Không có piston','Piston chuyển động thẳng nhờ động cơ tuyến tính, không có trục khuỷu','Dùng 2 block','Chạy bằng dầu'],a:1,e:'Bỏ cơ cấu trục khuỷu – tay biên nên giảm ma sát, êm và tiết kiệm.'},
+ {q:'Tủ Inverter bị rò điện nhẹ ra vỏ, cách xử lý đúng:',o:['Bỏ qua','Nối đất (tiếp địa) cho vỏ tủ chắc chắn','Đảo dây L – N là đủ','Thay block'],a:1,e:'Mạch lọc nhiễu của biến tần gây dòng rò nhỏ; nối đất bảo vệ người sử dụng.'}
+];
+QZ.b6=[
+ {q:'"Cân cáp" là công việc:',o:['Cân khối lượng gas nạp','Xác định trở lực, chiều dài ống mao phù hợp với block và loại tủ','Kiểm tra cách điện block','Đo dòng điện block'],a:1,e:'Ống mao (cáp) phải phù hợp block, loại gas và nhiệt độ yêu cầu.'},
+ {q:'Cùng đường kính, ống mao dài hơn thì:',o:['Trở lực nhỏ hơn','Trở lực lớn hơn, áp suất cân cáp cao hơn','Không thay đổi','Gas chảy nhiều hơn'],a:1,e:'Ống mao càng dài, càng nhỏ thì trở lực càng lớn.'},
+ {q:'Khi cân cáp hở, đồng hồ được gắn ở:',o:['Ống hút block','Đường đẩy, trước phin lọc','Đầu ra ống mao','Dàn bay hơi'],a:1,e:'Đồng hồ cao áp gắn giữa đầu đẩy block và phin, đo áp suất khi đầu ống mao xả ra không khí.'},
+ {q:'Cân cáp hở tủ 2 cửa có quạt R134a, giá trị tham khảo là:',o:['60 – 80 psi','120 – 160 psi','180 – 210 psi','400 – 450 psi'],a:2,e:'Theo bảng sổ tay: tủ 2 cửa có quạt (≤ −18 °C) R134a cân 180 – 210 psi.'},
+ {q:'Cân cáp được áp suất cao hơn yêu cầu, em xử lý:',o:['Nối thêm ống mao','Cắt bớt ống mao từng đoạn ngắn rồi đo lại','Thay block','Nạp thêm gas'],a:1,e:'Áp cao do ống mao dài – cắt bớt dần.'},
+ {q:'Cân cáp được áp suất thấp hơn nhiều so với yêu cầu:',o:['Cắt bớt ống mao','Ống mao quá ngắn hoặc quá to – thay đoạn ống mao mới phù hợp','Đạt yêu cầu','Tăng điện áp'],a:1,e:'Không nối dài ống mao được, phải thay đoạn mới.'},
+ {q:'Vì sao hàn xong ống mao nên cân lại?',o:['Để làm nguội mối hàn','Kiểm tra mối hàn không làm nghẹt ống mao','Để nạp gas','Không cần thiết'],a:1,e:'Que hàn chảy vào hoặc bóp méo ống làm tăng trở lực đột ngột.'},
+ {q:'Ưu điểm của cân cáp kín so với cân cáp hở:',o:['Nhanh, không tốn gas','Chính xác, sát điều kiện làm việc thật','Không cần dụng cụ','Không cần chạy block'],a:1,e:'Cân kín dùng gas thật trong hệ thống kín nên chính xác hơn nhưng tốn thời gian và gas.'}
+];
+QZ.b7=[
+ {q:'Gas R600a có đặc điểm cần lưu ý nhất khi sửa chữa là:',o:['Độc, gây ngộ độc','Dễ cháy','Phá hủy tầng ôzôn mạnh','Áp suất rất cao'],a:1,e:'R600a (isobutan) là hydrocarbon dễ cháy – nạp, xả nơi thoáng, tránh xa lửa.'},
+ {q:'Thử kín hệ thống tủ lạnh nên dùng:',o:['Oxy','Khí nén máy bơm hơi','Nitơ qua van giảm áp','Gas R600a'],a:2,e:'Nitơ khô, trơ. Oxy gây nổ khi gặp dầu; khí nén có hơi ẩm.'},
+ {q:'Áp suất thử kín tối đa cho dàn lạnh tủ dùng R600a khoảng:',o:['30 psi','100 – 120 psi','300 psi','500 psi'],a:1,e:'Dàn nhôm mỏng – R600a thử khoảng 100 – 120 psi, R134a khoảng 150 psi.'},
+ {q:'Mục đích chính của hút chân không là:',o:['Làm lạnh hệ thống','Loại bỏ không khí và hơi ẩm khỏi hệ thống','Kiểm tra block','Tăng áp suất'],a:1,e:'Ẩm gây tắc ẩm, axit, cháy block; không khí làm tăng áp suất ngưng tụ.'},
+ {q:'Hút chân không đạt yêu cầu khi kim đồng hồ xanh chỉ:',o:['0 psi','−30 inHg (−76 cmHg) và đứng yên khi giữ','150 psi','−10 inHg'],a:1,e:'Đạt −30 inHg, hút thêm ít nhất 30 phút, khóa van giữ 5 – 10 phút kim không tăng.'},
+ {q:'Kết thúc hút chân không, thứ tự đúng là:',o:['Tắt bơm rồi khóa van','Khóa van xanh rồi tắt bơm','Tháo dây rồi tắt bơm','Mở van đỏ rồi tắt bơm'],a:1,e:'Khóa van trước để không khí, dầu bơm không bị hút ngược vào hệ thống.'},
+ {q:'Mở van xanh trên bộ đồng hồ nạp gas thì:',o:['Vị trí 1 (giữa) thông với 3 (đỏ)','Vị trí 1 (giữa) thông với 2 (xanh)','Cả 3 vị trí cô lập','Đồng hồ đỏ chỉ 0'],a:1,e:'Van xanh (thấp áp) nối dây vàng giữa với dây xanh.'},
+ {q:'"Xả khí dây vàng" khi nối chai gas nhằm:',o:['Thử xì chai gas','Đuổi không khí trong dây nạp ra ngoài','Giảm áp suất chai','Làm lạnh dây'],a:1,e:'Nới đầu dây vàng ở bộ đồng hồ 1 – 2 giây cho gas đẩy không khí ra trước khi nạp.'},
+ {q:'Dấu hiệu nạp THỪA gas:',o:['Tuyết bám một đoạn đầu dàn','Ống hút đóng tuyết tới block, dòng cao','Áp hút thấp','Dàn nóng nguội'],a:1,e:'Thừa gas: lỏng tràn ra ống hút, áp suất và dòng tăng – phải xả bớt.'},
+ {q:'Cách nạp gas chính xác nhất cho tủ R600a là:',o:['Nạp theo tiếng kêu block','Nạp theo khối lượng ghi trên nhãn bằng cân điện tử','Nạp đến khi đồng hồ chỉ 50 psi','Nạp đầy chai nhỏ'],a:1,e:'Lượng nạp R600a rất nhỏ, sai vài gam ảnh hưởng lớn – cân điện tử là chuẩn.'}
+];
+QZ.b8=[
+ {q:'Tủ trực tiếp: block chạy liên tục, tuyết chỉ bám một đoạn ngắn đầu dàn, áp hút thấp. Nguyên nhân thường gặp:',o:['Thừa gas','Thiếu gas (xì) hoặc nghẹt ống mao','Hỏng đèn','Hỏng công tắc cửa'],a:1,e:'Ít gas vào dàn: thiếu gas hoặc nghẹt một phần – phân biệt bằng vết dầu, cân cáp.'},
+ {q:'Dấu hiệu đặc trưng của tắc ẩm:',o:['Không bao giờ lạnh','Lạnh rồi mất lạnh theo chu kỳ, chườm nóng đầu ống mao gas chảy lại','Block kêu to','Đèn không sáng'],a:1,e:'Nước đóng băng tại đầu ra ống mao gây tắc; tan ra thì gas chảy lại.'},
+ {q:'Tủ quạt: dàn lạnh đóng băng thành khối. Linh kiện nên kiểm tra đầu tiên:',o:['Block','Sò lạnh và hệ thống xả đá','Bóng đèn','Ron cửa'],a:1,e:'Sò lạnh là linh kiện xả đá hay hỏng nhất; kiểm tra thêm cầu chì nhiệt, điện trở, timer.'},
+ {q:'Đấu tắt 2 dây thermostat, block chạy. Cần thay:',o:['Block','Thermostat','Tẹc-mít','Phin lọc'],a:1,e:'Thermostat không đóng tiếp điểm.'},
+ {q:'Cấp điện, block không chạy, tẹc-mít tạch khoảng 10 giây một lần; rơ le khởi động, cuộn dây tốt. Kết luận:',o:['Thiếu gas','Block kẹt cơ','Timer kẹt','Điện trở xả đá đứt'],a:1,e:'Dòng lớn kéo dài do roto kẹt làm tẹc-mít nhảy liên tục → thay block.'},
+ {q:'Xử lý tắc ẩm, KHÔNG được làm:',o:['Thay phin mới','Thổi Nitơ','Dùng block hoặc máy nén khí thổi hệ thống','Hút chân không lâu'],a:2,e:'Khí do block, máy nén khí thổi vào có hơi ẩm – làm hệ thống ẩm thêm.'},
+ {q:'Dàn nóng âm vách bị xì, cách xử lý phù hợp:',o:['Hàn bên trong vỏ tủ','Cô lập dàn cũ, lắp dàn nóng mới ngoài mặt sau tủ','Nạp gas thường xuyên','Bỏ dàn nóng'],a:1,e:'Dàn âm không tiếp cận được để hàn – thay bằng dàn lắp ngoài.'},
+ {q:'Ngăn mát đóng đá, rau hỏng. Việc đầu tiên nên làm:',o:['Thay block','Chỉnh lại cửa gió (giảm gió lạnh xuống ngăn mát)','Nạp thêm gas','Thay quạt'],a:1,e:'Cửa gió sai là nguyên nhân thường gặp; vẫn bị thì kiểm tra thermostat.'},
+ {q:'Tủ rò điện ra vỏ. Việc KHÔNG đúng:',o:['Đo cách điện block với vỏ','Kiểm tra dây bị chuột cắn','Bỏ dây tiếp địa cho hết rò','Nối đất vỏ tủ'],a:2,e:'Tiếp địa là bảo vệ người dùng – không bao giờ bỏ.'},
+ {q:'Khi thay block cháy (dầu đen, mùi khét), ngoài block mới cần:',o:['Không cần gì thêm','Xúc rửa hệ thống, thay phin (có thể dùng phin chống axit)','Chỉ nạp thêm gas','Thay đèn'],a:1,e:'Axit, cặn cháy còn trong hệ thống sẽ làm hỏng block mới.'}
+];
+QZ.b9=[
+ {q:'Khoảng cách từ mặt sau tủ lạnh tới tường nên:',o:['Sát tường','Khoảng 10 cm trở lên (theo hướng dẫn hãng)','1 m','Không quan trọng'],a:1,e:'Để dàn nóng thải nhiệt tốt, giảm điện năng.'},
+ {q:'Sau khi vận chuyển tủ nằm nghiêng, nên:',o:['Cắm điện ngay','Để tủ đứng yên vài giờ rồi mới cắm điện','Nạp thêm gas','Tháo block'],a:1,e:'Dầu cần thời gian chảy về block, tránh block hút dầu, hỏng clapê.'},
+ {q:'Núm thermostat đặt mức lạnh nhất thường xuyên sẽ:',o:['Tiết kiệm điện','Block chạy gần như liên tục, hao điện, ngăn mát có thể đóng đá','Tủ kém lạnh','Không ảnh hưởng'],a:1,e:'Chỉ tăng mức khi cần (mùa nóng, nhiều thực phẩm).'},
+ {q:'Thực phẩm nào nên để ở ngăn đông?',o:['Rau xanh','Trứng','Thịt cá cần trữ lâu ngày','Sữa tươi'],a:2,e:'Ngăn đông ≤ −18 °C giữ thịt cá lâu; rau, trứng, sữa để ngăn mát.'},
+ {q:'Phá tuyết tủ trực tiếp khi lớp tuyết dày khoảng:',o:['1 mm','5 mm','5 cm','Không bao giờ'],a:1,e:'Tuyết dày cách nhiệt, làm tủ kém lạnh và hao điện.'},
+ {q:'Khi phá tuyết, việc tuyệt đối không làm:',o:['Rút phích điện','Dùng dao, vật nhọn cạy tuyết','Đặt chậu nước ấm vào ngăn đá','Lau khô dàn'],a:1,e:'Vật nhọn làm thủng dàn nhôm – phải thay dàn, nạp gas.'},
+ {q:'Kiểm tra ron cửa kín bằng cách:',o:['Kẹp tờ giấy, rút ra phải có lực','Đổ nước vào cửa','Đo điện trở ron','Nghe tiếng block'],a:0,e:'Tờ giấy rút ra dễ dàng là ron hở, chai.'},
+ {q:'Khi bảo dưỡng, KHÔNG được:',o:['Rút phích trước khi vệ sinh','Xịt nước trực tiếp vào block, rơ le, board','Vệ sinh dàn nóng bằng chổi mềm','Thông ống thoát nước'],a:1,e:'Nước vào thiết bị điện gây chạm chập, giật điện.'},
+ {q:'Thức ăn nóng vừa nấu xong nên:',o:['Cho ngay vào ngăn đông','Để nguội rồi đậy kín cho vào ngăn mát','Để ở cánh cửa','Để hở nắp'],a:1,e:'Đồ nóng làm tủ chạy nhiều, tăng tuyết bám, ảnh hưởng thực phẩm khác.'},
+ {q:'Vệ sinh dàn nóng tủ lạnh nên thực hiện khoảng:',o:['Mỗi ngày','6 – 12 tháng một lần','10 năm một lần','Không cần'],a:1,e:'Dàn nóng bám bụi làm áp suất ngưng tăng, kém lạnh, hao điện.'}
+];
+QZ.b10=[
+ {q:'Theo chương trình, máy lạnh thương nghiệp được chia thành mấy nhóm chính?',o:['2','3','4','5'],a:1,e:'(1) Tủ lạnh, thùng lạnh, tủ đông, tủ kết đông; (2) tủ – quầy kính lạnh, đông; (3) tủ – quầy lạnh, đông hở.'},
+ {q:'Tủ, quầy lạnh hở giữ lạnh cho hàng hóa nhờ:',o:['Cửa kính 3 lớp','Màn gió lạnh thổi trước các kệ','Nắp đặc','Điện trở sưởi'],a:1,e:'Màn gió (air curtain) ngăn không khí nóng của siêu thị tràn vào khoang lạnh.'},
+ {q:'Tủ kết đông có đặc điểm:',o:['Nhiệt độ +5 °C','Nhiệt độ rất thấp (−30 đến −40 °C), quạt thổi mạnh để làm đông nhanh','Không có máy nén','Chỉ dùng trưng bày'],a:1,e:'Làm đông nhanh giữ chất lượng thực phẩm (tinh thể đá nhỏ).'},
+ {q:'Thiết bị giữ lỏng chưa bay hơi, không cho về máy nén là:',o:['Bình chứa cao áp','Bình tách lỏng','Phin sấy lọc','Mắt gas'],a:1,e:'Bình tách lỏng đặt trên đường hút, chống va đập thủy lực cho máy nén.'},
+ {q:'Bầu cảm biến của van tiết lưu nhiệt được kẹp ở:',o:['Đầu vào dàn ngưng','Ống hút ngay sau dàn bay hơi','Bình chứa cao áp','Ống đẩy'],a:1,e:'Bầu cảm nhận nhiệt độ hơi cuối dàn để điều chỉnh độ quá nhiệt.'},
+ {q:'Dàn bay hơi thiếu lỏng (độ quá nhiệt tăng), van tiết lưu nhiệt sẽ:',o:['Đóng lại','Mở thêm','Giữ nguyên','Ngắt máy nén'],a:1,e:'Bầu nóng lên → áp suất bầu tăng → đẩy màng mở van thêm.'},
+ {q:'Mắt gas có nhiều bọt khi máy chạy ổn định thường do:',o:['Thừa gas','Thiếu gas hoặc tắc trước mắt gas','Dàn ngưng sạch','Quạt dàn lạnh chạy'],a:1,e:'Bọt là hơi lẫn trong đường lỏng – thiếu gas hoặc tụt áp qua phin tắc.'},
+ {q:'Tủ mát cửa kính thường xả đá bằng cách:',o:['Điện trở công suất lớn','Xả đá tự nhiên khi máy dừng, quạt vẫn thổi','Dùng nước nóng','Không cần xả đá'],a:1,e:'Nhiệt độ dàn tủ mát gần 0 °C nên tuyết tan khi máy nghỉ; tủ kính đông mới cần điện trở.'}
+];
+QZ.b11=[
+ {q:'Công tắc "cấp đông nhanh" trên tủ đông có tác dụng:',o:['Ngắt máy nén','Nối tắt thermostat để máy nén chạy liên tục','Bật đèn','Xả đá'],a:1,e:'Dùng khi cần làm đông nhanh; phải tắt sau đó để tránh chạy liên tục mãi.'},
+ {q:'Trong mạch có contactor, máy nén chạy khi:',o:['Cuộn hút contactor có điện, tiếp điểm chính đóng','Rơ le nhiệt tác động','Rơ le áp suất cao ngắt','CB tắt'],a:0,e:'Mạch điều khiển cấp điện cho cuộn K, tiếp điểm chính K cấp điện động lực cho máy nén.'},
+ {q:'Rơ le áp suất cao, áp suất thấp và tiếp điểm rơ le nhiệt được mắc:',o:['Song song với máy nén','Nối tiếp trong mạch điều khiển cuộn contactor','Nối tiếp quạt','Song song cuộn K'],a:1,e:'Bất kỳ bảo vệ nào tác động cũng ngắt cuộn K, dừng máy nén.'},
+ {q:'Ngõ ra "DEF" của bộ điều khiển nhiệt độ điều khiển:',o:['Máy nén','Điện trở xả đá','Quạt dàn ngưng','Đèn'],a:1,e:'COMP – máy nén; DEF – xả đá; FAN – quạt dàn lạnh.'},
+ {q:'Bộ điều khiển có "trễ bảo vệ máy nén" khoảng 3 phút nhằm:',o:['Tiết kiệm điện','Cho áp suất cân bằng, tránh khởi động liên tục làm hỏng máy','Làm lạnh nhanh','Xả đá'],a:1,e:'Máy nén khởi động khi áp suất chưa cân bằng dễ quá tải, nhảy bảo vệ.'},
+ {q:'Thiết bị 1 pha công suất 660 W, 220 V, cos φ = 1. Dòng điện làm việc là:',o:['0,3 A','3 A','30 A','6,6 A'],a:1,e:'I = P ÷ (U·cos φ) = 660 ÷ 220 = 3 A.'},
+ {q:'Theo công thức sổ tay, dòng dùng để chọn CB bằng khoảng:',o:['0,5 × I','1,5 × I','3 × I','10 × I'],a:1,e:'Icb ≈ 1,5 × I, rồi chọn cỡ CB tiêu chuẩn gần nhất phía trên.'},
+ {q:'Bộ điều khiển sáng, máy nén không chạy, đo thấy rơ le áp suất cao đang hở. Nên kiểm tra:',o:['Bóng đèn','Dàn ngưng bẩn, quạt dàn ngưng, thừa gas','Cảm biến S1','Công tắc cửa'],a:1,e:'HP ngắt do áp suất ngưng tụ cao.'}
+];
+QZ.b12=[
+ {q:'Bản vẽ thể hiện vị trí tủ, quầy, cụm máy, tuyến ống là:',o:['Bản vẽ mặt bằng lắp đặt','Bản vẽ chi tiết block','Sơ đồ điện','Bản vẽ kết cấu'],a:0,e:'Mặt bằng lắp đặt cho biết vị trí, kích thước, tuyến ống, máng điện.'},
+ {q:'Vị trí đặt cụm máy nén – ngưng tụ phải:',o:['Kín gió','Thoáng, có mái che, không bị gió nóng quẩn lại, dễ bảo trì','Sát nguồn nhiệt','Trong kho lạnh'],a:1,e:'Giải nhiệt tốt thì áp suất ngưng thấp, máy bền, tiết kiệm điện.'},
+ {q:'Khi hàn ống đồng hệ thống lạnh nên:',o:['Thổi oxy bên trong','Thổi Nitơ nhẹ bên trong ống','Đổ nước vào ống','Hàn khi còn gas'],a:1,e:'Nitơ đẩy oxy ra, tránh tạo muội đồng làm tắc phin, van.'},
+ {q:'Ống thoát nước ngưng dài 5 m, độ dốc tối thiểu 1% thì chênh lệch độ cao ít nhất:',o:['0,5 cm','5 cm','50 cm','5 m'],a:1,e:'1% của 500 cm là 5 cm.'},
+ {q:'Bẫy dầu được làm trên đoạn:',o:['Ống lỏng nằm ngang','Ống hút đi lên (ống đứng)','Ống nước','Dây điện'],a:1,e:'Giúp dầu hồi về máy nén khi ống hút đi lên cao (khoảng 3 – 5 m một bẫy).'},
+ {q:'Gas hỗn hợp như R404A phải nạp:',o:['Ở thể hơi','Ở thể lỏng (dốc ngược bình)','Bằng Nitơ','Không cần cân'],a:1,e:'Nạp hơi làm thay đổi thành phần hỗn hợp.'},
+ {q:'Thứ tự đúng sau khi lắp ống và điện xong:',o:['Nạp gas → thử kín → hút chân không','Vệ sinh → thử kín → hút chân không → nạp gas → chạy thử','Chạy thử → nạp gas','Hút chân không → thử kín'],a:1,e:'Đúng 10 bước của quy trình lắp đặt trong chương trình.'},
+ {q:'Ống nào phải bọc cách nhiệt kỹ nhất?',o:['Ống đẩy','Ống hút (đường về máy nén)','Dây điện','Ống nước cấp'],a:1,e:'Ống hút lạnh: không bọc sẽ đọng sương, tổn thất lạnh, hơi về máy nén quá nóng.'}
+];
+QZ.b13=[
+ {q:'Áp suất hút thấp, áp suất đẩy thấp, dòng thấp, mắt gas có bọt. Hệ thống bị:',o:['Thừa gas','Thiếu gas','Dàn ngưng bẩn','Máy nén kẹt'],a:1,e:'Ba thông số cùng thấp kèm bọt ở mắt gas là dấu hiệu thiếu gas.'},
+ {q:'Áp suất đẩy rất cao, dòng cao, rơ le HP ngắt. Kiểm tra trước tiên:',o:['Dàn ngưng, quạt dàn ngưng','Đèn tủ','Cảm biến xả đá','Ron cửa'],a:0,e:'Giải nhiệt kém làm áp suất ngưng tụ tăng cao.'},
+ {q:'Áp suất hút cao, áp suất đẩy thấp, dòng thấp, lạnh rất kém. Nghi ngờ:',o:['Thiếu gas','Máy nén yếu (hỏng clapê)','Tắc phin','Thừa gas'],a:1,e:'Máy nén không tạo được chênh lệch áp suất.'},
+ {q:'Phin lọc lạnh buốt, đọng sương ở đầu ra; áp suất hút xuống chân không. Hư hỏng là:',o:['Tắc phin lọc','Thừa gas','Quạt dàn ngưng hỏng','Rơ le nhiệt hỏng'],a:0,e:'Phin tắc gây tiết lưu ngay tại phin nên phin lạnh.'},
+ {q:'Phương pháp dò điện áp theo mạch: điểm trước thiết bị có điện, điểm sau không có. Kết luận:',o:['Thiết bị đó hở mạch','Thiết bị đó chập','Nguồn mất','Bình thường'],a:0,e:'Điện áp mất qua thiết bị – tiếp điểm hở hoặc dây đứt tại đó.'},
+ {q:'Mắt gas báo màu vàng (ẩm cao), xử lý:',o:['Nạp thêm gas','Thay phin sấy lọc, có thể nhiều lần, hút chân không kỹ','Thay quạt','Chỉnh van tiết lưu'],a:1,e:'Ẩm cao phải được phin sấy hấp thụ – thay đến khi mắt gas về màu xanh.'},
+ {q:'Bầu cảm biến van tiết lưu nhiệt bị mất gas thì van:',o:['Mở to hoàn toàn','Đóng lại, dàn thiếu lỏng','Không ảnh hưởng','Rò gas ra ngoài liên tục'],a:1,e:'Không còn lực mở từ bầu, lò xo đóng van.'},
+ {q:'Thay máy nén bị cháy, bắt buộc phải:',o:['Chỉ thay máy nén','Xúc rửa, lắp phin chống axit, kiểm tra dầu sau khi chạy','Nạp thừa gas','Bỏ rơ le nhiệt'],a:1,e:'Axit trong hệ thống sẽ phá hỏng máy nén mới.'}
+];
+QZ.b14=[
+ {q:'Trước khi bảo dưỡng hệ thống điện, việc đầu tiên là:',o:['Tháo contactor','Tắt nguồn tổng, treo biển cảnh báo, kiểm tra lại không còn điện','Xịt nước tủ điện','Đo dòng'],a:1,e:'An toàn điện luôn là bước đầu tiên.'},
+ {q:'Khi xịt rửa dàn ngưng phải:',o:['Xịt cả vào hộp điện','Che chắn mô tơ, hộp điện, bộ điều khiển','Xịt áp lực thật cao','Không cần tắt máy'],a:1,e:'Tránh nước vào thiết bị điện, áp lực vừa phải để không xẹp cánh.'},
+ {q:'Mục đích vệ sinh dàn ngưng định kỳ:',o:['Làm đẹp','Giảm áp suất ngưng tụ, giảm dòng, tiết kiệm điện, máy bền','Tăng lượng gas','Giảm tiếng ồn quạt'],a:1,e:'Dàn sạch giải nhiệt tốt.'},
+ {q:'Đầu cos lỏng trong tủ điện có thể gây:',o:['Tiết kiệm điện','Phát nóng, cháy dây, mất pha, hỏng máy nén','Tăng lượng gas','Không ảnh hưởng'],a:1,e:'Siết lại đầu nối là việc quan trọng khi bảo dưỡng điện.'},
+ {q:'Hệ thống nước ngưng bị tắc sẽ:',o:['Tủ lạnh hơn','Nước tràn, đọng trong quầy, rơi ra sàn','Áp suất hút tăng','Máy nén ngắt'],a:1,e:'Phải vệ sinh máng, thông ống, kiểm tra độ dốc.'},
+ {q:'Khi kiểm tra thấy thiếu gas, trước khi nạp bổ sung phải:',o:['Tăng điện áp','Tìm và xử lý chỗ rò','Thay quạt','Vệ sinh lưới lọc'],a:1,e:'Nạp mà không xử lý rò thì gas sẽ tiếp tục hao.'},
+ {q:'Bảo dưỡng quạt gồm:',o:['Chỉ thay cánh','Chạy thử nhận định tình trạng, kiểm tra cánh, tra dầu mỡ','Tháo bỏ tụ quạt','Đổi chiều quay'],a:1,e:'Đúng các bước trong chương trình (5.1 chạy thử, 5.2 tra dầu mỡ).'},
+ {q:'Ghi số liệu trước và sau bảo dưỡng nhằm:',o:['Cho đủ thủ tục','So sánh hiệu quả, phát hiện xu hướng hư hỏng, làm căn cứ bảo hành','Tăng giá dịch vụ','Không có tác dụng'],a:1,e:'Số liệu giúp đánh giá tình trạng thiết bị theo thời gian.'}
+];
+
+/* ================= Ngân hàng câu hỏi bổ sung cho THI ĐÁNH GIÁ =================
+   Đề thi lấy ngẫu nhiên từ: câu luyện tập cuối chương (QZ) + các câu bổ sung (QX) dưới đây.
+   Mỗi câu: q = câu hỏi, o = 4 phương án, a = vị trí đáp án đúng (0=A, 1=B, 2=C, 3=D), e = giải thích. */
+window.QX={};
+QX.b1=[
+ {q:'Thứ tự đúng của dòng gas trong hệ thống lạnh tủ lạnh là:',o:['Máy nén → dàn ngưng → phin sấy lọc → ống mao → dàn bay hơi → máy nén','Máy nén → ống mao → dàn ngưng → dàn bay hơi → máy nén','Máy nén → dàn bay hơi → phin sấy lọc → dàn ngưng → máy nén','Dàn ngưng → máy nén → ống mao → phin sấy lọc → dàn bay hơi'],a:0,e:'Nén → ngưng → lọc → tiết lưu → bay hơi → về nén.'},
+ {q:'Nhiệm vụ của dàn ngưng tụ (dàn nóng) là:',o:['Thu nhiệt trong tủ','Thải nhiệt ra môi trường, ngưng hơi gas thành lỏng','Giảm áp suất gas','Lọc ẩm cho hệ thống'],a:1,e:'Hơi gas nóng cao áp nhả nhiệt ra không khí xung quanh và ngưng tụ thành lỏng cao áp.'},
+ {q:'Gas đi ra khỏi dàn ngưng tụ ở trạng thái:',o:['Hơi, áp suất thấp','Lỏng, áp suất cao','Lỏng + hơi, áp suất thấp','Hơi quá nhiệt, áp suất thấp'],a:1,e:'Sau khi thải nhiệt, hơi gas ngưng thành lỏng nhưng vẫn ở áp suất cao.'},
+ {q:'Gas ra khỏi ống mao, vào dàn bay hơi ở trạng thái:',o:['Lỏng cao áp, nóng','Hơi cao áp, nóng','Lỏng + hơi, áp suất thấp, nhiệt độ thấp','Chỉ có hơi khô'],a:2,e:'Qua ống mao, áp suất và nhiệt độ giảm đột ngột; một phần lỏng hóa hơi.'},
+ {q:'Phía thấp áp của hệ thống lạnh tủ lạnh gồm:',o:['Đầu đẩy máy nén, dàn ngưng','Đầu ra ống mao, dàn bay hơi, đường hút về máy nén','Phin sấy lọc, đầu vào ống mao','Dàn ngưng, phin sấy lọc'],a:1,e:'Ranh giới cao – thấp áp là máy nén và ống mao.'},
+ {q:'Ở máy nén piston, khi piston đi xuống thì:',o:['Van đẩy mở, gas bị đẩy ra','Van hút mở, hơi gas được hút vào xi lanh','Cả hai van đều mở','Cả hai van đều đóng và gas bị nén'],a:1,e:'Piston đi xuống tạo áp thấp trong xi lanh, van hút mở cho hơi gas vào.'},
+ {q:'Trên block tủ lạnh, ống có đường kính lớn nhất thường là:',o:['Ống đẩy','Ống hút','Ống nạp','Ống mao'],a:1,e:'Ống hút dẫn hơi gas áp thấp (thể tích lớn) nên thường to nhất.'},
+ {q:'Ống nạp (ống công nghệ) trên block dùng để:',o:['Dẫn gas tới dàn ngưng','Hút chân không, nạp gas, sau đó bấm kín','Nối với ống mao','Xả dầu máy nén'],a:1,e:'Ống nạp là ống cụt dành cho thao tác hút chân không và nạp gas.'},
+ {q:'Tủ lạnh trực tiếp làm lạnh thực phẩm chủ yếu bằng:',o:['Quạt thổi gió lạnh','Đối lưu tự nhiên của không khí trong tủ','Bơm nước lạnh','Tấm sưởi'],a:1,e:'Không khí lạnh nặng chìm xuống, không khí ấm nhẹ bốc lên dàn lạnh.'},
+ {q:'Ở tủ lạnh gián tiếp, nước xả đá được đưa tới:',o:['Ngăn rau','Khay hứng trên block, bay hơi nhờ nhiệt của block','Dàn bay hơi','Ống mao'],a:1,e:'Nước chảy theo ống thoát xuống khay hứng đặt trên block và tự bay hơi.'},
+ {q:'Ống sưởi viền cửa (một đoạn ống đẩy nóng chạy quanh mép cửa) có tác dụng:',o:['Tăng áp suất hút','Chống đọng sương ở mép cửa, giữ ron không bị chai','Làm lạnh ngăn đông','Xả đá dàn lạnh'],a:1,e:'Mép cửa được sưởi ấm nhẹ nên không đọng sương, ron cửa mềm, kín.'},
+ {q:'Dàn ngưng tụ làm mát cưỡng bức bằng quạt thường gặp trên:',o:['Tủ lạnh mini 1 cửa','Tủ side by side, tủ mát, tủ đông','Mọi tủ lạnh 2 cửa nhỏ','Tủ lạnh đời cũ dùng gas R12'],a:1,e:'Thiết bị công suất lớn cần quạt để tăng khả năng thải nhiệt.'},
+ {q:'Bên trong phin sấy lọc có:',o:['Lưới lọc và hạt hút ẩm','Lò xo và màng','Tụ điện','Bánh răng'],a:0,e:'Lưới lọc giữ cặn bẩn; hạt hút ẩm (zeolit, silicagel) giữ hơi nước.'},
+ {q:'Dàn ngưng bám bụi dày, đặt sát tường thì:',o:['Tủ lạnh sâu hơn','Áp suất ngưng tăng, máy nén nóng, tủ kém lạnh và hao điện','Áp suất hút giảm về chân không','Không ảnh hưởng gì'],a:1,e:'Thải nhiệt kém làm áp suất, nhiệt độ ngưng tăng, máy nén làm việc nặng.'},
+ {q:'Núm cửa gió trong ngăn mát của tủ quạt gió dùng để:',o:['Bật tắt máy nén','Chia lượng gió lạnh giữa ngăn đông và ngăn mát','Điều chỉnh áp suất gas','Bật đèn'],a:1,e:'Mở cửa gió to → ngăn mát nhận nhiều gió lạnh hơn (quá to có thể đóng đá).'}
+];
+QX.b2=[
+ {q:'Tủ lạnh cấp khí hậu T làm việc tốt ở nhiệt độ phòng khoảng:',o:['+10 đến +32 °C','+16 đến +32 °C','+16 đến +43 °C','0 đến +20 °C'],a:2,e:'Cấp T (nhiệt đới) phù hợp nơi có nhiệt độ môi trường cao.'},
+ {q:'Ngăn đông ★★★ (≤ −18 °C) bảo quản thực phẩm được khoảng:',o:['1 ngày','1 tuần','3 tháng','2 năm'],a:2,e:'★ khoảng 1 tuần; ★★ khoảng 1 tháng; ★★★ khoảng 3 tháng.'},
+ {q:'Nhiệt độ thường dùng của ngăn rau quả là:',o:['−18 °C','−6 °C','5 – 10 °C','15 – 20 °C'],a:2,e:'Ngăn rau giữ ở 5 – 10 °C, độ ẩm cao để rau tươi lâu.'},
+ {q:'Nhãn tủ ghi điện năng tiêu thụ 365 kWh/năm. Mỗi ngày tủ tiêu thụ khoảng:',o:['0,1 kWh','1 kWh','10 kWh','36,5 kWh'],a:1,e:'365 ÷ 365 = 1 kWh mỗi ngày.'},
+ {q:'Công thức tính điện năng tiêu thụ là:',o:['A = U × I','A = P × t','A = P ÷ t','A = Q ÷ COP'],a:1,e:'Điện năng (kWh) = công suất (kW) × thời gian làm việc (giờ).'},
+ {q:'Block 1/10 HP có công suất điện khoảng:',o:['10 W','75 W','746 W','1000 W'],a:1,e:'1 HP ≈ 746 W nên 1/10 HP ≈ 75 W.'},
+ {q:'Block ký hiệu LBP thích hợp cho:',o:['Tủ đông, ngăn đông nhiệt độ thấp','Máy điều hòa','Tủ mát nhiệt độ cao','Máy nước nóng'],a:0,e:'LBP: nhiệt độ bay hơi thấp (tủ đông); MBP/HBP: nhiệt độ bay hơi trung bình, cao (tủ mát).'},
+ {q:'Gia đình 4 người nên chọn tủ lạnh dung tích khoảng (tính 50 – 70 lít mỗi người):',o:['50 – 90 lít','200 – 280 lít','500 – 600 lít','1000 lít'],a:1,e:'4 × (50 – 70) = 200 – 280 lít.'},
+ {q:'Cách đo nhiệt độ ngăn mát đúng là:',o:['Đặt nhiệt kế sát dàn lạnh khi vừa mở cửa','Đặt nhiệt kế trong ly nước ở giữa ngăn, đọc sau 2 – 3 giờ không mở cửa','Đo nhiệt độ vỏ block','Đo nhiệt độ dàn nóng'],a:1,e:'Ly nước giữ nhiệt ổn định, phản ánh nhiệt độ thực của thực phẩm.'},
+ {q:'Nhãn năng lượng tủ lạnh có càng nhiều sao thì:',o:['Càng tốn điện','Càng tiết kiệm điện','Càng lạnh sâu','Dung tích càng lớn'],a:1,e:'Nhãn năng lượng 1 – 5 sao: càng nhiều sao càng tiết kiệm điện.'},
+ {q:'Tủ có hệ số thời gian làm việc b = 0,4. Mỗi ngày block chạy khoảng:',o:['4 giờ','9,6 giờ','14,4 giờ','24 giờ'],a:1,e:'24 × 0,4 = 9,6 giờ.'},
+ {q:'Dòng điện tủ quá nhỏ, ampe kìm khó đọc. Mẹo đo chính xác hơn là:',o:['Kẹp cả hai dây','Quấn dây 10 vòng qua ngàm kìm, lấy số đọc chia 10','Đo bằng thang Ω','Đo dây tiếp địa'],a:1,e:'10 vòng dây làm từ trường tăng 10 lần nên số chỉ lớn hơn, dễ đọc.'},
+ {q:'Việc nào giúp tủ lạnh tiết kiệm điện?',o:['Đặt tủ sát bếp','Để thức ăn còn nóng vào tủ','Đặt tủ nơi thoáng mát, cách tường, đóng cửa kín','Đặt núm thermostat mức lạnh nhất'],a:2,e:'Giải nhiệt tốt và giảm tải giúp block chạy ít hơn.'},
+ {q:'Tủ cấp khí hậu N đặt trong phòng 38 °C thường:',o:['Chạy tiết kiệm hơn','Chạy gần như liên tục, kém lạnh','Không chạy','Bị đóng đá ngăn mát'],a:1,e:'Cấp N chỉ thiết kế cho phòng tới 32 °C; phòng nóng hơn sẽ quá tải.'}
+];
+QX.b3=[
+ {q:'Chân C của block tủ lạnh là:',o:['Đầu cuộn đề','Điểm nối chung của cuộn chạy và cuộn đề','Đầu cuộn chạy','Chân nối vỏ'],a:1,e:'C (common) là điểm chung bên trong của hai cuộn dây.'},
+ {q:'Đo được C–R = 15 Ω, C–S = 25 Ω. Điện trở R–S của block tốt là:',o:['10 Ω','25 Ω','40 Ω','15 Ω'],a:2,e:'R_RS = R_CR + R_CS = 15 + 25 = 40 Ω.'},
+ {q:'Block ghi 3 chân C – M – A. Chân M và A tương ứng là:',o:['M là cuộn đề, A là cuộn chạy','M là cuộn chạy, A là cuộn đề','M là chân chung, A là vỏ','M và A đều là chân chung'],a:1,e:'M (main) = cuộn chạy R; A (auxiliary) = cuộn đề S.'},
+ {q:'Vì sao phải ngắt cuộn đề sau khi động cơ khởi động?',o:['Để tăng tốc độ','Cuộn đề dây nhỏ, làm việc lâu sẽ quá nóng, cháy','Để đổi chiều quay','Để giảm áp suất gas'],a:1,e:'Cuộn đề chỉ được thiết kế làm việc vài giây lúc khởi động.'},
+ {q:'Rơ le khởi động ngắt cuộn đề khi động cơ đạt khoảng:',o:['10 – 20% tốc độ định mức','75 – 80% tốc độ định mức','100% và quá tốc độ','Ngay khi cấp điện'],a:1,e:'Khi đó dòng điện giảm, rơ le dòng nhả, PTC đã nóng.'},
+ {q:'Sơ đồ khởi động CSIR có đặc điểm:',o:['Tụ khởi động nối tiếp cuộn đề qua rơ le, mômen khởi động lớn','Không có cuộn đề','Tụ ngậm làm việc liên tục','Chỉ dùng cho quạt'],a:0,e:'CSIR dùng cho block lớn cần mômen khởi động cao (tủ đông, tủ mát công nghiệp).'},
+ {q:'Sơ đồ RSCR (PTC + tụ ngậm) có ưu điểm:',o:['Không cần rơ le bảo vệ','Hệ số công suất cao, tiết kiệm điện','Không cần cuộn đề','Không cần thermostat'],a:1,e:'Tụ ngậm nối cuộn đề làm việc liên tục, giảm dòng, tăng cos φ.'},
+ {q:'Sau khi tắt tủ, nên chờ 3 – 5 phút mới cấp điện lại vì:',o:['Để dầu nguội','Áp suất hai phía cân bằng và rơ le PTC nguội lại','Để gas bay hơi hết','Để đèn tắt'],a:1,e:'Khởi động khi áp suất chưa cân bằng hoặc PTC còn nóng sẽ làm block khó khởi động, nhảy bảo vệ.'},
+ {q:'Khi xác định C, R, S bằng đồng hồ vạn năng, chọn thang đo:',o:['V~ 750','Ω thang nhỏ nhất (x1 hoặc 200 Ω)','A~','µF'],a:1,e:'Điện trở cuộn dây chỉ vài Ω đến vài chục Ω.'},
+ {q:'Đo một cặp chân block được ∞ (không lên kim) chứng tỏ:',o:['Block tốt','Đứt cuộn dây','Chập vòng','Block kẹt cơ'],a:1,e:'Cuộn dây bị đứt nên không thông mạch.'},
+ {q:'Chạy thử block, bịt nhẹ ngón tay ở ống hút thấy hút mạnh, ống đẩy thổi mạnh. Kết luận:',o:['Block yếu','Khả năng nén của block tốt','Block chạm vỏ','Đứt cuộn đề'],a:1,e:'Hút và đẩy mạnh cho thấy cơ cấu nén, clapê còn tốt.'},
+ {q:'Không nên để block chạy thử lâu khi hở ống vì:',o:['Tốn gas','Block hút không khí ẩm vào dầu và có thể quá nhiệt','Làm hỏng ống mao','Đồng hồ sẽ hỏng'],a:1,e:'Chỉ chạy thử thời gian ngắn rồi ngắt điện.'},
+ {q:'Dòng điện làm việc của block tủ lạnh gia đình thường khoảng:',o:['0,05 – 0,1 A','0,5 – 1,2 A','5 – 10 A','20 – 30 A'],a:1,e:'So với dòng định mức ghi trên nhãn block.'},
+ {q:'Đo thấy R_RS nhỏ hơn rõ rệt so với R_CR + R_CS. Block bị:',o:['Bình thường','Chập vòng cuộn dây','Đứt cuộn chạy','Thiếu gas'],a:1,e:'Hệ thức cộng điện trở không đúng là dấu hiệu cuộn dây bị chập.'}
+];
+QX.b4=[
+ {q:'Trên núm thermostat cơ, số càng lớn thì:',o:['Tủ càng ấm, block chạy ít','Tủ càng lạnh, block chạy càng lâu','Không ảnh hưởng','Đèn càng sáng'],a:1,e:'Số lớn → nhiệt độ ngắt thấp hơn → block chạy lâu hơn mới ngắt.'},
+ {q:'Bầu cảm biến của thermostat thường được kẹp tại:',o:['Vỏ block','Dàn lạnh (dàn bay hơi)','Dàn ngưng','Ống đẩy'],a:1,e:'Thermostat cảm nhận nhiệt độ dàn lạnh để đóng ngắt máy nén.'},
+ {q:'Kiểm tra thermostat không chịu ngắt bằng cách:',o:['Đo điện áp nguồn','Nhúng bầu cảm biến vào ly nước đá pha muối rồi đo thông mạch','Đo dòng block','Hơ lửa vào bầu cảm biến'],a:1,e:'Ở nhiệt độ rất lạnh tiếp điểm phải mở; nếu vẫn thông thì thermostat hỏng.'},
+ {q:'Điện dung tụ ngậm (tụ chạy) trên block tủ lạnh thường khoảng:',o:['Vài µF','Vài trăm µF','Vài F','Vài pF'],a:0,e:'Tụ ngậm vài µF; tụ khởi động hàng chục đến hàng trăm µF.'},
+ {q:'Đo tụ bằng đồng hồ kim thang x1k, kim lên 0 Ω và đứng yên. Tụ bị:',o:['Tốt','Chập','Khô, đứt','Rò nhẹ'],a:1,e:'Tụ tốt thì kim vọt lên rồi trả về từ từ.'},
+ {q:'Tiếp điểm của rơ le khởi động kiểu dòng (con cóc) là loại:',o:['Thường đóng','Thường mở','Không có tiếp điểm','Tiếp điểm 3 cực'],a:1,e:'Tiếp điểm chỉ đóng khi dòng khởi động lớn hút lõi sắt lên.'},
+ {q:'Rơ le khởi động PTC còn tốt, đo hai chân ở nhiệt độ phòng được khoảng:',o:['0 Ω tuyệt đối','Vài Ω đến vài chục Ω','Vài MΩ','∞ (không lên kim)'],a:1,e:'PTC nguội có điện trở nhỏ; khi nóng lên điện trở tăng rất lớn để ngắt cuộn đề. Đo được ∞ là PTC bị vỡ, đứt.'},
+ {q:'Chu kỳ thường gặp của timer xả đá là:',o:['Làm lạnh 10 phút, xả đá 10 giờ','Làm lạnh khoảng 6 – 10 giờ, xả đá khoảng 20 – 30 phút','Làm lạnh 1 giờ, xả đá 1 giờ','Xả đá liên tục'],a:1,e:'Thời gian cụ thể phụ thuộc mã timer.'},
+ {q:'Sò lạnh trong mạch xả đá được mắc:',o:['Song song với máy nén','Giữa chân 2 timer và cầu chì nhiệt – điện trở xả đá','Nối tiếp với đèn','Giữa L và thermostat'],a:1,e:'Chân 2 → sò lạnh → điểm X (chân 1) → cầu chì nhiệt → điện trở → N.'},
+ {q:'Cảm biến nhiệt độ NTC trên tủ điện tử có đặc điểm:',o:['Điện trở tăng khi nhiệt độ tăng','Điện trở giảm khi nhiệt độ tăng','Điện trở không đổi','Chỉ có hai trạng thái đóng / mở'],a:1,e:'NTC: hệ số nhiệt điện trở âm.'},
+ {q:'Nút nhấn cửa 2 cực điều khiển đèn: khi cửa mở (nút nhả) thì:',o:['Tiếp điểm hở, đèn tắt','Tiếp điểm thông, đèn sáng','Quạt chạy','Máy nén dừng'],a:1,e:'Nút điều khiển đèn thông khi nhả, hở khi bị cửa ép vào.'},
+ {q:'Quạt dàn lạnh DC 12 V trên tủ điện tử, khi kiểm tra cần chú ý:',o:['Cấp thẳng 220 V để thử','Chỉ đo điện áp cấp từ board, không cấp 220 V','Cắt bỏ dây hồi tiếp','Thay bằng quạt AC'],a:1,e:'Cấp 220 V sẽ làm cháy quạt DC.'},
+ {q:'Tẹc-mít nhảy liên tục. Nguyên nhân nào dưới đây KHÔNG liên quan?',o:['Điện áp nguồn thấp','Block kẹt cơ','Dàn nóng bẩn, áp suất đẩy cao','Bóng đèn trong tủ bị cháy'],a:3,e:'Đèn ở nhánh riêng, không làm block quá tải.'},
+ {q:'Điện trở xả đá loại ống thủy tinh bên trong có:',o:['Gas lạnh','Dây điện trở xoắn lò xo','Nam châm','Tụ điện'],a:1,e:'Dây điện trở (hợp kim niken – crôm) đặt trong ống thủy tinh chịu nhiệt.'},
+ {q:'Mô tơ quạt dàn lạnh loại vòng chập có roto kiểu:',o:['Nam châm vĩnh cửu','Lồng sóc','Dây quấn có chổi than','Piston'],a:1,e:'Roto lồng sóc quay nhờ từ trường lệch pha do vòng chập tạo ra.'}
+];
+QX.b5=[
+ {q:'Trong mạch tủ lạnh trực tiếp, thermostat được mắc:',o:['Song song với đèn','Nối tiếp trong nhánh máy nén (trước rơ le khởi động)','Nối tiếp với công tắc cửa','Giữa N và tiếp địa'],a:1,e:'Thermostat đóng ngắt toàn bộ nhánh máy nén.'},
+ {q:'Nhánh đèn và nhánh máy nén trong mạch tủ lạnh được mắc:',o:['Nối tiếp nhau','Song song giữa hai dây L và N','Chung một công tắc','Qua tụ điện'],a:1,e:'Mỗi nhánh hoạt động độc lập, đèn sáng không phụ thuộc block.'},
+ {q:'Kiểm tra nguội tủ trực tiếp: vặn thermostat về OFF, cửa đóng, đo hai chân phích thấy:',o:['0 Ω','∞ (hở mạch)','Vài chục Ω','Vài trăm Ω'],a:1,e:'Thermostat hở và công tắc cửa hở nên không có đường thông.'},
+ {q:'Ở tủ gián tiếp, điện trở xả đá nóng khi:',o:['Timer ở 3 – 4','Timer ở 3 – 2 và sò lạnh đang đóng (dàn còn lạnh)','Mở cửa tủ','Thermostat mở'],a:1,e:'Cần cả tiếp điểm 3 – 2 của timer và sò lạnh đóng.'},
+ {q:'Cầu chì nhiệt đứt khi tủ đang ở chế độ làm lạnh thì mô tơ timer:',o:['Quay nhanh hơn','Không quay vì mất đường về N, timer không chuyển sang xả đá','Vẫn quay bình thường','Làm máy nén dừng'],a:1,e:'Mô tơ timer về N qua chân 1 → cầu chì nhiệt → điện trở xả đá.'},
+ {q:'Tủ gián tiếp đang ở chế độ xả đá (timer thông 3 – 2) thì máy nén và quạt dàn lạnh:',o:['Vẫn chạy bình thường','Đều dừng vì chân 4 không có điện','Máy nén chạy, quạt dừng','Máy nén dừng, quạt chạy nhanh hơn'],a:1,e:'Khi xả đá chân 4 mất điện nên máy nén và quạt dừng; chỉ nhánh sò lạnh – điện trở xả đá được cấp điện.'},
+ {q:'Trong mạch dùng nút nhấn cửa 3 cực ở ngăn mát, chân COM nối về:',o:['Chân 4 timer','Dây N','Thermostat','Sò lạnh'],a:1,e:'COM về N; NC nối đèn; NO nối quạt.'},
+ {q:'Mạch dùng nút nhấn 3 cực: mở cửa ngăn mát thì:',o:['Đèn tắt, quạt chạy','Đèn sáng, quạt dừng','Cả hai cùng chạy','Máy nén dừng'],a:1,e:'Nút nhả: COM – NC thông (đèn), COM – NO hở (quạt).'},
+ {q:'Trên tủ điện tử, cảm biến dán trên dàn lạnh để điều khiển xả đá thường ký hiệu:',o:['OLP','DFC hoặc D-SENSOR','PTC','COMP'],a:1,e:'Board đọc cảm biến xả đá để kết thúc chu kỳ xả đá.'},
+ {q:'Sau khi lắp mạch xong, việc phải làm trước khi cấp điện là:',o:['Nạp gas','Kiểm tra nguội bằng đồng hồ vạn năng và báo giáo viên','Vặn thermostat mức cao nhất','Tháo rơ le bảo vệ'],a:1,e:'Kiểm tra nguội phát hiện chập mạch, đấu sai trước khi có điện.'},
+ {q:'Điện trở xả đá 150 W đang nóng, dòng điện đo được khoảng:',o:['0,07 A','0,7 A','7 A','15 A'],a:1,e:'I ≈ P ÷ U = 150 ÷ 220 ≈ 0,7 A.'},
+ {q:'Thời gian xả đá thực tế (điện trở nóng bao lâu) chủ yếu do bộ phận nào quyết định?',o:['Thermostat','Sò lạnh','Đèn','Rơ le khởi động'],a:1,e:'Sò lạnh mở khi dàn ấm lên khoảng +13 °C, ngắt điện trở.'}
+];
+QX.inv=[
+ {q:'Điện áp một chiều sau khối chỉnh lưu – tụ lọc trên board inverter khoảng:',o:['12 V','110 V','310 V','1000 V'],a:2,e:'220 V xoay chiều chỉnh lưu, lọc phẳng được khoảng 310 V một chiều.'},
+ {q:'Khối IPM trên board inverter gồm:',o:['Cầu chì và varistor','6 transistor công suất đóng cắt điện áp DC','Vi xử lý','Cảm biến nhiệt độ'],a:1,e:'IPM tạo điện áp 3 pha có tần số thay đổi cho máy nén.'},
+ {q:'Dấu hiệu nhận biết tủ inverter:',o:['Block có 3 chân C – R – S và rơ le PTC','Tem ghi Inverter, block U – V – W nối với board','Có timer xả đá cơ','Không có quạt'],a:1,e:'Tủ inverter không dùng rơ le khởi động, tẹc-mít rời.'},
+ {q:'Nhiệt độ trong tủ inverter dao động khoảng:',o:['±0,5 °C','±5 °C','±10 °C','Không đổi tuyệt đối'],a:0,e:'Block chạy liên tục tốc độ thấp nên nhiệt độ ổn định.'},
+ {q:'Tủ inverter tiết kiệm điện khoảng bao nhiêu so với tủ thường?',o:['1 – 2%','30 – 40%','90%','Không tiết kiệm'],a:1,e:'Con số tham khảo phụ thuộc model, điều kiện sử dụng.'},
+ {q:'Khởi động mềm trên tủ inverter có nghĩa là:',o:['Block khởi động với dòng lớn','Block tăng tốc dần nên dòng khởi động nhỏ','Block không bao giờ dừng','Không cần điện'],a:1,e:'Board tăng tần số từ từ, tránh dòng khởi động lớn.'},
+ {q:'Nhược điểm của tủ inverter là:',o:['Tốn điện','Board phức tạp, nhạy với sét, điện áp tăng vọt; sửa chữa khó','Ồn hơn','Nhiệt độ dao động nhiều'],a:1,e:'Cần nối đất tốt, nguồn ổn định.'},
+ {q:'Vi xử lý (MCU) trên board inverter nhận tín hiệu từ:',o:['Cảm biến nhiệt độ các ngăn và công tắc cửa','Ống mao','Phin sấy lọc','Dàn ngưng'],a:0,e:'MCU tính tốc độ máy nén, điều khiển quạt, xả đá.'},
+ {q:'Roto của máy nén BLDC là:',o:['Lồng sóc','Nam châm vĩnh cửu','Dây quấn có chổi than','Piston tuyến tính'],a:1,e:'BLDC: động cơ một chiều không chổi than, roto nam châm vĩnh cửu.'},
+ {q:'Quạt DC 12 V loại 4 dây trên tủ inverter có thêm dây:',o:['Tiếp địa','Tín hiệu điều khiển tốc độ và hồi tiếp tốc độ','Nối với ống mao','Nối với dàn ngưng'],a:1,e:'Board điều khiển và theo dõi tốc độ quạt qua các dây tín hiệu.'}
+];
+QX.b6=[
+ {q:'Đường kính trong ống mao tủ lạnh thường khoảng:',o:['0,06 – 0,08 mm','0,6 – 0,8 mm','6 – 8 mm','16 mm'],a:1,e:'Ống mao rất nhỏ nên tạo trở lực lớn.'},
+ {q:'Theo bảng tham khảo, cân cáp tủ mát (1 – 10 °C) dùng R134a khoảng:',o:['60 – 80 psi','120 – 160 psi','300 – 350 psi','500 psi'],a:1,e:'Tủ mát nhiệt độ cao nên trở lực ống mao nhỏ hơn tủ đông.'},
+ {q:'Theo bảng tham khảo, tủ 2 cửa không quạt (ngăn đông −12 °C) dùng R134a cân cáp khoảng:',o:['90 – 100 psi','150 – 160 psi','300 – 350 psi','400 – 450 psi'],a:1,e:'Giá trị trong bảng cân cáp của sổ tay.'},
+ {q:'Theo bảng tham khảo, tủ 2 cửa có quạt dùng R600a cân cáp khoảng:',o:['120 – 160 psi','180 – 210 psi','300 – 350 psi','600 psi'],a:2,e:'R600a cần trở lực ống mao lớn hơn R134a.'},
+ {q:'Khi cân cáp hở, đầu ra ống mao và ống hút block:',o:['Đều hàn kín','Đầu ống mao để hở ra không khí; ống hút để hở, bọc vải sạch','Nối vào chai gas','Nối vào bơm chân không'],a:1,e:'Block hút không khí và đẩy qua phin, ống mao ra ngoài.'},
+ {q:'Dụng cụ cắt ống mao đúng là:',o:['Kìm bóp','Dao cắt chuyên dụng (khía rồi bẻ)','Cưa sắt','Kéo cắt giấy'],a:1,e:'Không làm méo, bẹp miệng ống mao.'},
+ {q:'Ống mao quá ngắn (hoặc quá to) thì khi chạy:',o:['Áp hút thấp, tuyết chỉ bám đầu dàn','Áp hút cao, lạnh không sâu, ống hút lạnh buốt, đọng sương','Block không chạy','Dàn ngưng nguội'],a:1,e:'Gas vào dàn quá nhiều, không bay hơi hết.'},
+ {q:'Ống mao quá dài (hoặc quá nhỏ) thì khi chạy:',o:['Áp hút thấp, tuyết chỉ bám một đoạn đầu dàn','Ống hút đọng sương tới block','Áp hút rất cao','Tủ lạnh nhanh hơn'],a:0,e:'Trở lực lớn, ít gas vào dàn bay hơi.'},
+ {q:'Khi cân cáp kín, đồng hồ được gắn ở:',o:['Phía thấp áp (ống nạp)','Đầu ra ống mao','Dàn ngưng','Ống mao'],a:0,e:'Theo dõi áp suất hút, kết hợp dòng điện và tuyết bám.'},
+ {q:'Block cũ (đã yếu) khi cân cáp nên chọn giá trị:',o:['Cao hơn block mới','Thấp hơn block mới','Bằng 0','Không cần cân'],a:1,e:'Block cũ nén kém hơn nên áp suất đạt được thấp hơn.'},
+ {q:'Trường hợp nào BẮT BUỘC phải cân cáp?',o:['Thay bóng đèn','Đổi gas từ R134a sang R600a','Vệ sinh dàn nóng','Thay ron cửa'],a:1,e:'Gas khác nhau cần trở lực ống mao khác nhau.'}
+];
+QX.b7=[
+ {q:'So với R134a, lượng gas R600a nạp cho cùng cỡ tủ chỉ khoảng:',o:['5 – 10%','40 – 50%','150%','Gấp 3 lần'],a:1,e:'R600a có khối lượng riêng nhỏ hơn nhiều.'},
+ {q:'Bơm chân không dùng cho hệ thống lạnh nên có lưu lượng hút:',o:['≥ 40 lít/phút','≤ 1 lít/phút','Không quan trọng','≥ 4000 lít/phút'],a:0,e:'Lưu lượng lớn giúp kim nhanh về mức chân không tối đa.'},
+ {q:'Mức chân không tối đa của bơm đạt yêu cầu khoảng:',o:['5 – 15 micron','500 psi','−5 inHg','0 psi'],a:0,e:'Chỉ số micron càng nhỏ thì độ chân không càng cao.'},
+ {q:'Nạp R134a vào tủ được thiết kế cho R600a thì:',o:['Lạnh tốt hơn','Không được: áp suất R134a cao hơn, block quá tải','Không ảnh hưởng','Tiết kiệm điện'],a:1,e:'Muốn đổi gas phải tính lại block, dầu, ống mao.'},
+ {q:'Gas lỏng bắn vào da, cách xử lý đúng là:',o:['Chườm nước nóng','Rửa ngay bằng nước thường (không dùng nước nóng)','Bôi dầu nhớt','Để tự khô'],a:1,e:'Gas lỏng bay hơi gây bỏng lạnh.'},
+ {q:'Phòng bị rò rỉ nhiều gas lạnh, cần làm gì?',o:['Đóng kín cửa','Mở cửa, dùng quạt thổi ra ngoài vì gas chiếm chỗ oxy','Bật bếp ga để đốt','Ngồi chờ'],a:1,e:'Một số gas không độc nhưng có thể gây ngạt.'},
+ {q:'Trên bộ đồng hồ nạp gas, dây màu vàng (giữa) thường nối với:',o:['Phía cao áp','Phía thấp áp','Bơm chân không, chai gas hoặc chai Nitơ','Dây điện'],a:2,e:'Dây xanh: thấp áp; dây đỏ: cao áp; dây vàng: nguồn cấp hoặc hút.'},
+ {q:'Muốn biết bình gas mất nhãn chứa gas gì, ta:',o:['Ngửi mùi','Đo áp suất và nhiệt độ ở trạng thái bão hòa, tra bảng áp suất – nhiệt độ','Cân bình','Đốt thử'],a:1,e:'Mỗi loại gas có áp suất bão hòa riêng ở từng nhiệt độ.'},
+ {q:'Kết thúc nạp gas, ống nạp được:',o:['Để hở','Bấm dẹt bằng kìm bấm ống ở 2 vị trí khi block đang chạy, rồi hàn kín đầu ống','Dán băng keo','Bịt bằng giấy'],a:1,e:'Sau đó thử xì lại mối hàn.'},
+ {q:'Tủ chỉ có ống nạp ở phía hút, khi hút chân không phía cao áp hút chậm vì:',o:['Bơm yếu','Ống mao cản trở dòng khí','Phin quá to','Dàn ngưng quá lớn'],a:1,e:'Có thể dùng phin 3 ngả hoặc thêm van nạp phía cao áp.'},
+ {q:'Chạy thử sau nạp gas, áp suất hút thấp, dòng thấp, tuyết chỉ bám đoạn đầu dàn. Hệ thống:',o:['Thừa gas','Thiếu gas','Đủ gas','Block kẹt'],a:1,e:'Nạp thêm từng ít, chờ ổn định rồi kiểm tra lại.'},
+ {q:'Sau khi nạp, phải chờ bao lâu để đọc thông số chính xác?',o:['5 giây','20 – 30 phút tủ chạy ổn định, cửa đóng','2 ngày','Không cần chờ'],a:1,e:'Áp suất, dòng điện cần thời gian ổn định.'},
+ {q:'Không nên nạp gas ở thể lỏng vào phía hút khi block đang chạy vì:',o:['Tốn gas','Lỏng vào xi lanh có thể làm hỏng clapê block','Đồng hồ hỏng','Gas đổi màu'],a:1,e:'Gas đơn chất (R134a, R600a) nên nạp ở thể hơi.'}
+];
+QX.b8=[
+ {q:'Cách kiểm tra nhanh tủ quạt gió có thiếu gas không:',o:['Mở cửa nghe tiếng quạt','Cô lập quạt, cho block chạy liên tục 30 phút, đóng cửa rồi quan sát tuyết bám dàn','Đo điện trở xả đá','Thay thermostat'],a:1,e:'Tuyết bám đều toàn dàn: đủ gas. Bám một đoạn: thiếu gas hoặc nghẹt.'},
+ {q:'Mở cửa đèn không sáng; đấu tắt hai dây công tắc cửa thì đèn sáng. Kết luận:',o:['Bóng đèn hỏng','Công tắc cửa hỏng','Mất nguồn','Thermostat hỏng'],a:1,e:'Thay công tắc (nút nhấn) cửa đúng loại.'},
+ {q:'Nước đọng trong tủ, chảy ra sàn thường do:',o:['Block yếu','Tắc ống thoát nước xả đá','Thừa gas','Cầu chì nhiệt đứt'],a:1,e:'Thông ống thoát, vệ sinh lỗ thoát nước.'},
+ {q:'Tủ cũ, block kêu to hơn bình thường, có thể do:',o:['Block mòn hoặc đế cao su chai, ốc lỏng','Thiếu đèn','Ron cửa mới','Phin mới'],a:0,e:'Kiểm tra chân đế, ống chạm vỏ, áp suất nén.'},
+ {q:'Tủ có dàn nóng dùng quạt bị kém lạnh. Việc nên làm ĐẦU TIÊN là:',o:['Thay block','Vệ sinh dàn nóng rồi theo dõi','Nạp thêm gas ngay','Thay timer'],a:1,e:'Loại trừ nguyên nhân đơn giản trước khi mở hệ thống.'},
+ {q:'Dàn lạnh nhôm của tủ bị xì nhiều chỗ, cách xử lý tốt nhất:',o:['Dán băng keo','Thay dàn mới','Nạp gas định kỳ','Bỏ qua'],a:1,e:'Dàn nhôm mỏng, hàn vá khó bền.'},
+ {q:'Nghẹt ống mao không hoàn toàn, xử lý theo thứ tự:',o:['Thay block ngay','Thổi Nitơ khoảng 100 psi; không được thì xúc rửa hóa chất; vẫn không được thì thay ống mao','Nạp thêm gas','Tăng điện áp'],a:1,e:'Sau đó thay phin, hút chân không, nạp gas.'},
+ {q:'Tắc bẩn hoàn toàn ở phin hoặc ống mao có dấu hiệu:',o:['Áp hút cao, dàn nóng rất nóng','Áp hút xuống chân không, dàn nóng nguội, dàn lạnh không lạnh','Đèn không sáng','Nước đọng trong tủ'],a:1,e:'Gas không lưu thông qua điểm tắc.'},
+ {q:'Tủ quạt đủ gas, xả đá bình thường nhưng ngăn đông không đông, ngăn mát không mát. Nguyên nhân thường gặp:',o:['Quạt ngăn đông không chạy, chạy yếu hoặc cánh tụt vào trong','Thừa gas','Block chạm vỏ','Thermostat ngắt muộn'],a:0,e:'Gió lạnh không được đưa tới các ngăn.'},
+ {q:'Dấu hiệu nào là BÌNH THƯỜNG ở tủ lạnh?',o:['Nghe tiếng gas chảy rì rào nhẹ sau khi block dừng','Block chạy liên tục không nghỉ','Ống hút đóng tuyết tới block','Vỏ tủ bị giật điện'],a:0,e:'Gas tiếp tục chảy cân bằng áp suất qua ống mao.'},
+ {q:'Viền cửa tủ hơi ấm khi tủ chạy là:',o:['Hỏng block','Bình thường – do ống sưởi viền cửa','Rò điện','Thiếu gas'],a:1,e:'Ống sưởi viền cửa chống đọng sương.'},
+ {q:'Thay block khác loại (khác công suất, khác gas) thì phải:',o:['Giữ nguyên ống mao','Cân cáp lại cho phù hợp','Bỏ phin','Không cần hút chân không'],a:1,e:'Ống mao phải phù hợp với block và gas mới.'}
+];
+QX.b9=[
+ {q:'Sau mỗi lần chỉnh núm nhiệt độ, nên chờ bao lâu mới đánh giá?',o:['5 phút','12 – 24 giờ','1 tuần','Không cần chờ'],a:1,e:'Tủ cần thời gian ổn định nhiệt độ.'},
+ {q:'Cài đặt nhiệt độ hợp lý cho tủ điện tử là:',o:['Ngăn đông −5 °C, ngăn mát 10 °C','Ngăn đông khoảng −18 °C, ngăn mát 3 – 5 °C','Ngăn đông −40 °C, ngăn mát −5 °C','Ngăn đông 0 °C, ngăn mát 0 °C'],a:1,e:'Đảm bảo bảo quản thực phẩm an toàn, tiết kiệm điện.'},
+ {q:'Rã đông thịt cá đúng cách là:',o:['Để ngoài nắng','Chuyển từ ngăn đông xuống ngăn mát trước khi dùng','Ngâm nước nóng thật lâu','Để ngoài cả ngày'],a:1,e:'Rã đông ở nhiệt độ thấp hạn chế vi khuẩn phát triển.'},
+ {q:'Không nên để trứng, sữa lâu ở cánh cửa tủ vì:',o:['Cánh cửa lạnh nhất','Nhiệt độ cánh cửa dao động nhiều nhất khi đóng mở','Cánh cửa không có gió','Cánh cửa có điện'],a:1,e:'Cánh cửa phù hợp đồ uống, gia vị.'},
+ {q:'Sắp xếp thực phẩm trong ngăn mát đúng là:',o:['Thực phẩm sống để trên, chín để dưới','Thực phẩm sống để dưới, thức ăn chín để trên (đậy kín)','Để lẫn lộn','Để hở nắp'],a:1,e:'Tránh nước từ thực phẩm sống nhỏ xuống thức ăn chín.'},
+ {q:'Vệ sinh bên trong tủ lạnh nên dùng:',o:['Xăng','Nước ấm pha baking soda hoặc nước rửa nhẹ','Axit','Bàn chải sắt'],a:1,e:'Không dùng hóa chất mạnh làm hỏng nhựa, ron.'},
+ {q:'Tủ mới mua về, lần đầu sử dụng nên:',o:['Cho thực phẩm vào ngay','Chạy không tải vài giờ cho đủ lạnh rồi mới cho thực phẩm vào','Tắt mở liên tục','Đặt núm ở OFF'],a:1,e:'Tủ đủ lạnh mới bảo quản tốt.'},
+ {q:'Không nên lau ron cửa bằng:',o:['Khăn mềm ẩm','Xăng, cồn đặc','Nước xà phòng loãng','Nước ấm'],a:1,e:'Hóa chất mạnh làm ron chai cứng, hở.'},
+ {q:'Lớp tuyết dày trên dàn lạnh làm tủ:',o:['Lạnh hơn','Kém lạnh và hao điện vì tuyết là lớp cách nhiệt','Không ảnh hưởng','Giảm tiếng ồn'],a:1,e:'Cần phá tuyết khi dày khoảng 5 mm (tủ trực tiếp).'},
+ {q:'Tủ quạt gió (gián tiếp) có dàn lạnh đóng băng dày thành khối, điều đó cho thấy:',o:['Bình thường, chỉ cần phá tuyết bằng tay','Hệ thống xả đá tự động bị hỏng','Thiếu đèn','Thừa ron'],a:1,e:'Tủ gián tiếp tự xả đá; đóng băng dày là dấu hiệu hỏng.'},
+ {q:'Khi đặt tủ, chân trước nên cao hơn chân sau một chút để:',o:['Dễ lau','Cửa tủ tự đóng kín','Tăng áp suất','Thoát nước nhanh'],a:1,e:'Cửa có xu hướng tự khép lại.'},
+ {q:'Yêu cầu an toàn điện khi lắp đặt tủ lạnh:',o:['Không cần nối đất','Nối đất vỏ tủ, dùng ổ cắm riêng; điện áp yếu thì dùng ổn áp','Dùng chung ổ với bếp điện','Nối dài nhiều ổ cắm'],a:1,e:'Giảm nguy cơ điện giật, bảo vệ block.'}
+];
+QX.b10=[
+ {q:'Tủ mát thương nghiệp làm việc ở nhiệt độ khoảng:',o:['+1 đến +10 °C','−18 đến −25 °C','−30 đến −40 °C','+20 đến +30 °C'],a:0,e:'Tủ mát bảo quản đồ uống, sữa, rau quả.'},
+ {q:'Tủ kem làm việc ở nhiệt độ:',o:['+5 °C','≤ −26 °C','0 °C','+15 °C'],a:1,e:'Kem cần nhiệt độ rất thấp để giữ cấu trúc.'},
+ {q:'Bố trí máy kiểu "remote" có nghĩa là:',o:['Máy nén đặt liền tủ','Cụm máy nén – ngưng tụ đặt bên ngoài, nối ống tới tủ, quầy','Điều khiển từ xa bằng remote','Không có máy nén'],a:1,e:'Thường dùng cho quầy hở siêu thị, kho lạnh nhỏ.'},
+ {q:'Cửa kính tủ đông trưng bày có điện trở sưởi kính để:',o:['Làm tan kem','Chống đọng sương trên kính','Tăng nhiệt độ tủ','Chiếu sáng'],a:1,e:'Khách hàng nhìn rõ hàng hóa bên trong.'},
+ {q:'Bình chứa cao áp trong hệ thống thương nghiệp có nhiệm vụ:',o:['Chứa hơi gas áp thấp','Chứa lỏng sau dàn ngưng, đảm bảo cấp lỏng liên tục cho van tiết lưu','Tách dầu','Hút ẩm'],a:1,e:'Ổn định lượng lỏng khi tải thay đổi.'},
+ {q:'Van điện từ trên đường lỏng dùng để:',o:['Điều chỉnh độ quá nhiệt','Đóng – mở đường lỏng theo lệnh bộ điều khiển','Lọc bẩn','Đo áp suất'],a:1,e:'Ngắt cấp lỏng khi máy dừng.'},
+ {q:'Rơ le áp suất cao (HP) ngắt máy nén khi:',o:['Áp suất hút quá thấp','Áp suất đẩy quá cao (dàn ngưng bẩn, quạt ngưng hỏng)','Mở cửa tủ','Xả đá'],a:1,e:'Bảo vệ máy nén và hệ thống khỏi áp suất cao nguy hiểm.'},
+ {q:'Độ quá nhiệt mà van tiết lưu nhiệt thường duy trì khoảng:',o:['0 K','5 – 8 K','30 – 40 K','100 K'],a:1,e:'Đảm bảo dàn làm việc hiệu quả, không có lỏng về máy nén.'},
+ {q:'Lực ĐÓNG van tiết lưu nhiệt gồm:',o:['Áp suất trong bầu cảm biến','Áp suất bay hơi và lực lò xo','Áp suất đẩy','Trọng lực'],a:1,e:'Lực mở là áp suất bầu cảm biến tác dụng lên màng.'},
+ {q:'Ban đêm, quầy lạnh hở trong siêu thị nên:',o:['Tắt hẳn máy','Kéo rèm che để giảm tổn thất lạnh','Mở quạt trần thổi vào','Tháo màn gió'],a:1,e:'Tiết kiệm điện, giữ nhiệt độ hàng hóa.'},
+ {q:'Lớp cách nhiệt vỏ tủ đông thương nghiệp thường là:',o:['Bông thủy tinh 5 mm','Bọt PU dày khoảng 60 – 100 mm','Giấy carton','Không có cách nhiệt'],a:1,e:'Cách nhiệt tốt giảm tải lạnh.'},
+ {q:'Bầu cảm biến van tiết lưu nhiệt sau khi kẹp vào ống hút phải:',o:['Để lộ ra không khí','Bọc cách nhiệt','Hàn chết vào ống','Nhúng vào nước'],a:1,e:'Để bầu cảm nhận đúng nhiệt độ hơi trong ống.'}
+];
+QX.b11=[
+ {q:'Tiếp điểm 95 – 96 của rơ le nhiệt là tiếp điểm:',o:['Thường mở','Thường đóng, mở ra khi quá tải','Nối với quạt','Nối với đèn'],a:1,e:'Mắc trong mạch điều khiển để ngắt cuộn contactor khi quá tải.'},
+ {q:'Khi chọn contactor cần chú ý:',o:['Màu vỏ','Điện áp cuộn hút phù hợp điện áp mạch điều khiển và dòng tiếp điểm đủ lớn','Trọng lượng','Hãng sản xuất bất kỳ'],a:1,e:'Cuộn hút sai điện áp sẽ không hút hoặc cháy.'},
+ {q:'Cảm biến S1 (nhiệt độ tủ) của bộ điều khiển nên đặt ở:',o:['Sát điện trở xả đá','Luồng gió hồi trong tủ','Ngoài trời','Trên máy nén'],a:1,e:'S2 (cảm biến dàn) kẹp trên dàn lạnh để kết thúc xả đá.'},
+ {q:'Sau xả đá, bộ điều khiển trễ quạt dàn lạnh vài phút để:',o:['Tiết kiệm điện','Nước nhỏ hết và dàn lạnh lại, tránh thổi nước, hơi ấm lên hàng hóa','Làm nóng tủ','Kiểm tra đèn'],a:1,e:'Bảo vệ chất lượng hàng hóa trưng bày.'},
+ {q:'Ngõ ra FAN của bộ điều khiển nhiệt độ điều khiển:',o:['Máy nén','Quạt dàn lạnh','Điện trở xả đá','Đèn'],a:1,e:'COMP – máy nén; DEF – xả đá; FAN – quạt dàn lạnh.'},
+ {q:'Thiết bị 1100 W, 220 V, cos φ = 1 có dòng làm việc:',o:['0,5 A','5 A','50 A','242 A'],a:1,e:'I = P ÷ (U·cos φ) = 1100 ÷ 220 = 5 A.'},
+ {q:'Contactor kêu rè, hút không dứt khoát thường do:',o:['Điện áp cuộn hút thấp, mặt lõi bẩn','Thừa gas','Đèn hỏng','Cảm biến tốt'],a:0,e:'Đo điện áp cuộn hút, vệ sinh hoặc thay contactor.'},
+ {q:'Đèn LED tủ trưng bày không sáng, sau khi kiểm tra công tắc vẫn tốt thì nên kiểm tra:',o:['Máy nén','Bộ nguồn LED','Van tiết lưu','Phin lọc'],a:1,e:'Đèn LED dùng bộ nguồn riêng.'},
+ {q:'Tủ mát xả đá tự nhiên nhờ:',o:['Điện trở công suất lớn','Quạt dàn lạnh vẫn chạy khi máy nén dừng, tuyết tan dần','Gas nóng','Nước nóng'],a:1,e:'Nhiệt độ dàn tủ mát gần 0 °C nên tuyết dễ tan.'},
+ {q:'Mạch động lực của quầy lạnh gồm:',o:['Cảm biến, bộ điều khiển','CB, tiếp điểm chính contactor, rơ le nhiệt, máy nén','Nút nhấn cửa, đèn','Rơ le áp suất, cuộn hút'],a:1,e:'Mạch động lực cấp điện trực tiếp cho máy nén.'},
+ {q:'Khi lắp mạch quầy lạnh, bước chạy thử nên làm theo thứ tự:',o:['Nối máy nén chạy ngay','Chạy thử mạch điều khiển trước (chưa nối máy nén), rồi mới chạy có tải','Không cần chạy thử','Chạy thử khi chưa kiểm tra nguội'],a:1,e:'Phát hiện lỗi điều khiển an toàn hơn.'}
+];
+QX.b12=[
+ {q:'Bản vẽ hệ thống lạnh (khi lắp đặt) thể hiện:',o:['Vị trí bàn ghế','Sơ đồ nguyên lý, đường kính ống, loại van, thiết bị phụ','Màu sơn tường','Giá thành thiết bị'],a:1,e:'Bản vẽ điện thể hiện sơ đồ điện, tiết diện dây, CB.'},
+ {q:'Khi nạo bavia ống đồng, nên hướng miệng ống:',o:['Lên trên','Xuống dưới để mạt đồng không rơi vào ống','Nằm ngang','Hướng nào cũng được'],a:1,e:'Mạt đồng lọt vào hệ thống gây tắc phin, van.'},
+ {q:'Miệng loe đạt yêu cầu là:',o:['Méo, có răng cưa','Tròn đều, đúng kích thước, không răng cưa','Càng to càng tốt','Nứt nhẹ cũng được'],a:1,e:'Miệng loe xấu dễ xì gas tại rắc co.'},
+ {q:'Ống cách nhiệt (superlon) cho ống đồng thường dày:',o:['1 – 2 mm','13 – 19 mm','100 mm','Không cần'],a:1,e:'Hệ dân dụng thường 13 mm, hệ lớn 19 mm.'},
+ {q:'Thử kín hệ thống lạnh thương nghiệp bằng Nitơ nên giữ áp:',o:['Vài giây','Nhiều giờ (thường đến 24 giờ), ghi áp suất và nhiệt độ đầu – cuối','Không cần giữ','1 tuần'],a:1,e:'Áp suất thay đổi theo nhiệt độ nên phải ghi kèm nhiệt độ.'},
+ {q:'Hút chân không hệ thống thương nghiệp nên:',o:['Chỉ hút phía cao áp','Hút cả hai phía, dùng đồng hồ đo micron (mục tiêu khoảng ≤ 500 micron)','Hút 1 phút','Không cần hút'],a:1,e:'Đảm bảo hệ thống khô, sạch.'},
+ {q:'Gas R290 (propan) có đặc điểm cần lưu ý:',o:['Dễ cháy','Độc như amoniac','Phá hủy ôzôn mạnh','Không cần nạp theo khối lượng'],a:0,e:'Thông gió, tránh lửa khi thao tác.'},
+ {q:'Ống thoát nước ngưng của quầy lạnh cần có:',o:['Van chặn','Siphon (bẫy nước), độ dốc ≥ 1%, bọc cách nhiệt','Phin lọc','Đồng hồ áp suất'],a:1,e:'Siphon chặn khí nóng, mùi đi ngược vào quầy.'},
+ {q:'Cụm máy mới xuất xưởng thường còn giữ áp Nitơ. Khi kiểm tra trước lắp đặt, điều đó cho biết:',o:['Máy bị hỏng','Hệ thống còn kín trong quá trình vận chuyển','Phải nạp thêm Nitơ','Không ý nghĩa'],a:1,e:'Mất áp chứng tỏ có chỗ xì cần kiểm tra.'},
+ {q:'Độ quá nhiệt được tính bằng:',o:['Nhiệt độ ống đẩy − nhiệt độ phòng','Nhiệt độ ống hút tại bầu cảm biến − nhiệt độ bão hòa ứng với áp suất hút','Áp suất đẩy − áp suất hút','Nhiệt độ ngăn đông − nhiệt độ ngăn mát'],a:1,e:'Dùng để điều chỉnh van tiết lưu nhiệt.'},
+ {q:'Công việc cuối cùng của quy trình lắp đặt là:',o:['Hút chân không','Chạy thử, điều chỉnh hệ thống, bàn giao và hướng dẫn sử dụng','Đọc bản vẽ','Lắp quầy lạnh'],a:1,e:'Ghi biên bản thông số khi bàn giao.'}
+];
+QX.b13=[
+ {q:'Hệ thống có khí không ngưng (do không hút chân không kỹ) có dấu hiệu:',o:['Áp suất đẩy cao, kim đồng hồ dao động','Áp suất hút xuống chân không','Dòng điện bằng 0','Tủ quá lạnh'],a:0,e:'Khí không ngưng chiếm chỗ trong dàn ngưng làm tăng áp suất ngưng.'},
+ {q:'Thay máy nén bị cháy, nên lắp thêm:',o:['Phin lọc chống axit ở đường hút và đường lỏng','Tụ điện lớn hơn','Van một chiều','Bóng đèn'],a:0,e:'Loại bỏ axit, cặn cháy còn lại trong hệ thống.'},
+ {q:'Bốn "giác quan" của người thợ khi chẩn đoán là:',o:['Nhìn, nghe, sờ, đo','Đọc, viết, tính, vẽ','Hàn, cắt, loe, nong','Nạp, xả, hút, thử'],a:0,e:'Kết hợp quan sát và đo kiểm để khẳng định nguyên nhân.'},
+ {q:'Khi thay quạt dàn ngưng, dàn lạnh cần chọn đúng:',o:['Màu sắc','Công suất, tốc độ, chiều quay, điện áp','Trọng lượng','Hãng bất kỳ'],a:1,e:'Sai chiều quay làm gió đi ngược, giải nhiệt kém.'},
+ {q:'Lưới lọc đầu vào van tiết lưu nhiệt bị tắc sẽ làm:',o:['Dàn bay hơi thiếu lỏng, độ quá nhiệt lớn','Dàn ngập lỏng','Áp suất đẩy giảm về 0','Quạt quay nhanh'],a:0,e:'Vệ sinh lưới lọc hoặc thay van.'},
+ {q:'Máy nén chạy – dừng liên tục, rơ le áp suất thấp ngắt. Nguyên nhân có thể:',o:['Thiếu gas, tắc phin, tắc van tiết lưu','Dàn ngưng quá sạch','Điện áp quá ổn định','Đèn sáng'],a:0,e:'Áp suất hút giảm thấp làm rơ le LP tác động.'},
+ {q:'Dàn ngưng ống đồng bị xì một chỗ, cách xử lý:',o:['Thay toàn bộ hệ thống','Làm sạch, hàn vá chỗ xì; xì nhiều chỗ thì thay dàn','Dán keo','Nạp gas thường xuyên'],a:1,e:'Sau đó thử kín, hút chân không, nạp gas.'},
+ {q:'Kiểm tra cuộn hút contactor còn tốt khi đo được:',o:['∞','Một giá trị điện trở xác định (không ∞, không 0)','0 Ω tuyệt đối','Điện áp 220 V khi rút điện'],a:1,e:'∞ là đứt cuộn hút.'},
+ {q:'Bước đầu tiên của quy trình xác định hư hỏng là:',o:['Thay máy nén','Hỏi khách hàng về hiện tượng, thời điểm, đã sửa gì','Nạp gas','Tháo vỏ máy'],a:1,e:'Thông tin ban đầu giúp khoanh vùng nhanh.'},
+ {q:'Điều chỉnh độ quá nhiệt van tiết lưu nhiệt đúng cách là:',o:['Vặn hết cỡ một lần','Vặn vít chỉnh từng ít, chờ hệ thống ổn định rồi đo lại','Tháo lò xo','Không bao giờ chỉnh'],a:1,e:'Hệ thống cần thời gian đáp ứng sau mỗi lần chỉnh.'},
+ {q:'Trước khi thay máy nén mới, cần:',o:['Tìm nguyên nhân làm hỏng máy nén cũ','Tăng điện áp','Bỏ rơ le bảo vệ','Không cần làm gì'],a:0,e:'Nếu không khắc phục nguyên nhân, máy nén mới sẽ hỏng tiếp.'}
+];
+QX.b14=[
+ {q:'Ở môi trường nhiều bụi, lưới lọc gió dàn ngưng nên vệ sinh:',o:['Hằng tuần','10 năm một lần','Không cần','Chỉ khi máy hỏng'],a:0,e:'Lưới lọc bẩn làm giải nhiệt kém, áp suất ngưng tăng.'},
+ {q:'Bảo dưỡng toàn diện hệ thống lạnh thương nghiệp nên thực hiện khoảng:',o:['3 – 6 tháng một lần','Mỗi ngày','10 năm một lần','Không cần'],a:0,e:'Đo thông số, vệ sinh dàn, quạt, điện.'},
+ {q:'Kiểm tra cách điện động cơ máy nén, quạt dùng:',o:['Mêgôm mét hoặc đồng hồ thang điện trở lớn','Ampe kìm','Nhiệt kế','Đồng hồ áp suất'],a:0,e:'Phát hiện cuộn dây giảm cách điện, chạm vỏ.'},
+ {q:'Tra dầu mỡ cho quạt áp dụng với:',o:['Ổ bi, bạc có lỗ tra dầu','Cánh quạt','Tụ điện','Cuộn dây'],a:0,e:'Quạt bạc kín tự bôi trơn thì không tra dầu.'},
+ {q:'Tiếp điểm contactor bị rỗ nặng, cháy xém thì:',o:['Thay contactor (hoặc bộ tiếp điểm)','Dũa mạnh rồi dùng tiếp','Bôi mỡ','Nối tắt'],a:0,e:'Tiếp điểm xấu gây phát nóng, mất pha.'},
+ {q:'Vệ sinh tủ điện đúng cách là:',o:['Xịt nước','Dùng chổi khô, khí nén khi đã cắt điện','Lau bằng xăng','Không bao giờ vệ sinh'],a:1,e:'Không dùng nước trong tủ điện.'},
+ {q:'Kiểm tra độ dốc ống nước ngưng bằng cách:',o:['Đổ nước thử, quan sát nước thoát nhanh, không rò','Đo điện áp','Nghe tiếng máy','Đo áp suất gas'],a:0,e:'Nước đọng gây tràn, rêu, mùi.'},
+ {q:'Cánh tản nhiệt dàn bị xẹp sau khi vệ sinh được nắn lại bằng:',o:['Lược cánh chuyên dụng','Búa','Kìm bóp','Tua vít đầu dẹt bất kỳ'],a:0,e:'Cánh thẳng giúp gió lưu thông tốt.'},
+ {q:'Kết thúc bảo dưỡng, việc phải làm là:',o:['Đóng điện, chạy thử, đo dòng, ghi số liệu sau bảo dưỡng vào biên bản','Rời đi ngay','Tháo cảm biến','Xả hết gas'],a:0,e:'So sánh trước – sau để đánh giá hiệu quả.'},
+ {q:'Công việc hằng ngày nhân viên cửa hàng có thể làm:',o:['Theo dõi nhiệt độ hiển thị, tiếng máy, cửa đóng kín','Nạp gas','Thay máy nén','Chỉnh van tiết lưu'],a:0,e:'Phát hiện sớm bất thường để báo thợ.'}
+];
+
+/* ================= CÂU HỎI, ĐỀ THI LẤY TỪ GOOGLE SHEET =================
+   Trắc nghiệm trên slide và ngân hàng đề thi đọc từ trang "NganHang", đề thi từ trang "DeThi",
+   lớp và lời nhắn từ trang "CauHinh" của Google Sheet (qua link Web App trong CAU_HINH_THI).
+   Thứ tự ưu tiên: dữ liệu mới tải từ Google Sheet → bản đã tải lần trước (lưu trên máy) → câu hỏi có sẵn trong file. */
+(function(){
+'use strict';
+const CODES=['b1','b2','b3','b4','b5','inv','b6','b7','b8','b9','b10','b11','b12','b13','b14'];
+const label=c=>c==='inv'?'Inverter':'Bài '+c.slice(1);
+const CHN={b1:'Nguyên lý hoạt động, cấu tạo tủ lạnh gia đình',b2:'Các đặc tính vận hành của tủ lạnh',b3:'Động cơ máy nén',b4:'Thiết bị điện, bảo vệ và tự động',
+ b5:'Hệ thống điện tủ lạnh',inv:'Công nghệ Inverter trên tủ lạnh',b6:'Cân cáp tủ lạnh',b7:'Nạp gas tủ lạnh',b8:'Những hư hỏng thông thường và cách sửa chữa',
+ b9:'Sử dụng, bảo dưỡng tủ lạnh',b10:'Cấu tạo, nguyên lý hệ thống lạnh thương nghiệp',b11:'Hệ thống điện máy lạnh thương nghiệp',b12:'Lắp đặt hệ thống lạnh thương nghiệp',
+ b13:'Sửa chữa hệ thống lạnh thương nghiệp',b14:'Bảo dưỡng hệ thống lạnh thương nghiệp'};
+const two=n=>String(n).padStart(2,'0');
+const txt=v=>String(v==null?'':v).replace(/ /g,' ').trim();
+function codeOf(s){s=txt(s).toLowerCase();if(!s)return null;if(CODES.indexOf(s)>=0)return s;
+  if(/inv|chuyên đề|chuyen de/.test(s))return 'inv';const m=s.match(/(\d{1,2})/);if(m){const n=+m[1];if(n>=1&&n<=14)return 'b'+n}return null}
+function scopeOf(s){s=txt(s);if(!s)return [];if(/tất cả|tat ca|toàn bộ|toan bo|cả mô đun/i.test(s))return CODES.slice();
+  const out=[];s.split(/[,;+\n]|\bvà\b/).forEach(p=>{p=p.trim();if(!p)return;
+    const r=p.match(/(\d{1,2})\s*(?:-|–|—|đến|den)\s*(?:bài\s*)?(\d{1,2})/i);
+    if(r){const a=+r[1],b=+r[2];for(let n=Math.min(a,b);n<=Math.max(a,b);n++)if(n>=1&&n<=14)out.push('b'+n);return}
+    const c=codeOf(p);if(c)out.push(c)});
+  return CODES.filter(c=>out.indexOf(c)>=0)}
+function use(s){s=txt(s).toLowerCase();if(/ẩn|không dùng|khong dung|bỏ|tắt/.test(s))return{slide:false,exam:false};
+  const slide=/slide|trình chiếu|trinh chieu/.test(s);return{slide,exam:/thi/.test(s)||!slide}}
+const no=s=>/^(không|khong|no|false|0|khóa|khoa|đóng|dong|x)$/i.test(txt(s));
+function img(u){u=txt(u);if(!u)return '';const m=/google\.com/.test(u)&&(u.match(/\/d\/([\w-]{20,})/)||u.match(/[?&]id=([\w-]{20,})/));
+  if(m)return 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1200';return /^https:\/\//.test(u)?u:''}
+
+/* ---------- kết nối ---------- */
+const U=window.CAU_HINH_THI||{};const URL0=String(U.linkGoogleSheet||'').trim();
+const LINK=/^https:\/\/script\.google(usercontent)?\.com\/\S+$/.test(URL0)?URL0:'';
+const S={get(k,d){try{const v=localStorage.getItem('mdl18_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+         set(k,v){try{localStorage.setItem('mdl18_'+k,JSON.stringify(v))}catch(e){}}};
+function rnd(n){try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}catch(e){return Math.floor(Math.random()*n)}}
+function jsonp(params,ms){return new Promise((res,rej)=>{
+  if(!LINK){rej(new Error('nolink'));return}
+  const cb='__md18cb_'+Date.now().toString(36)+rnd(1e6);const sc=document.createElement('script');let done=false;
+  const tm=setTimeout(()=>{end();rej(new Error('timeout'))},ms||20000);
+  function end(){done=true;clearTimeout(tm);window[cb]=function(){};sc.remove()}
+  window[cb]=d=>{if(done)return;end();res(d||{})};
+  sc.onerror=()=>{if(done)return;end();rej(new Error('network'))};
+  const q=Object.keys(params).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(params[k]==null?'':params[k])).join('&');
+  sc.src=LINK+(LINK.indexOf('?')>=0?'&':'?')+q+'&callback='+cb;(document.head||document.body).appendChild(sc)})}
+function post(body,keep){if(!LINK)return Promise.resolve(false);
+  try{return fetch(LINK,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),keepalive:!!keep}).then(()=>true,()=>false)}catch(e){return Promise.resolve(false)}}
+
+/* ---------- câu hỏi có sẵn trong file (dự phòng, và để nạp lần đầu lên Google Sheet) ---------- */
+const BUILTIN_QZ=JSON.parse(JSON.stringify(window.QZ||{}));
+const BUILTIN_QX=JSON.parse(JSON.stringify(window.QX||{}));
+function builtinBank(){const B={};CODES.forEach(c=>{const a=(BUILTIN_QZ[c]||[]).concat(BUILTIN_QX[c]||[]);
+  B[c]=a.filter(q=>q&&q.q&&q.o&&q.o.length>=2).map((q,i)=>({id:c+'-'+two(i+1),k:c,q:q.q,o:q.o,a:q.a,e:q.e||'',img:''}))});return B}
+function builtinRows(){const rows=[];CODES.forEach(c=>{const a=BUILTIN_QZ[c]||[],b=BUILTIN_QX[c]||[];
+  a.concat(b).forEach((q,i)=>rows.push([c+'-'+two(i+1),label(c),q.q,q.o[0]||'',q.o[1]||'',q.o[2]||'',q.o[3]||'','ABCD'[q.a],q.e||'',i<a.length?'Thi + Slide':'Chỉ thi','']))});return rows}
+
+/* ---------- áp dụng dữ liệu từ Google Sheet ---------- */
+let info={src:'file',ts:0,n:0,nSlide:0,nExam:0,err:''};
+function parseExams(rows){const out=[],seen={};let dk=0;
+  (rows||[]).forEach((r,i)=>{const ten=txt(r[2]);let id=txt(r[0]).replace(/\s+/g,'');if(!id&&!ten)return;if(!id)id='de'+(i+2);if(seen[id])return;seen[id]=1;
+    const g=/định kỳ|dinh ky/i.test(r[1])?'dk':/kết thúc|ket thuc|mô đun|mo dun|cuối môn/i.test(r[1])?'kt':'bai';
+    const ch=scopeOf(r[3]);if(!ch.length)return;
+    const soCau=Math.max(1,parseInt(txt(r[4]),10)||10),phut=Math.max(1,parseFloat(txt(r[5]).replace(',','.'))||15);
+    let lab,sub;
+    if(ch.length===1){lab=label(ch[0]);sub=CHN[ch[0]]||ten}
+    else if(g==='dk'){lab='Định kỳ '+(++dk);sub=ch.map(label).join(', ')}
+    else if(g==='kt'){lab='Kết thúc';sub=ch.length===CODES.length?'Toàn bộ 14 bài và chuyên đề Inverter':ch.map(label).join(', ')}
+    else{lab='Kiểm tra';sub=ch.map(label).join(', ')}
+    out.push({id,grp:g,lab,ten:ten||lab,sub,ch,soCau,phut,xem:!no(r[6]),mo:!no(r[7]),pw:txt(r[8])})});
+  return out}
+function apply(d,src,ts){
+  if(!d||!Array.isArray(d.q))return false;
+  const QZn={},BK={},ids={};CODES.forEach(c=>{QZn[c]=[];BK[c]=[]});let n=0,ns=0,ne=0;
+  d.q.forEach((r,ri)=>{const c=codeOf(r[1]),q=txt(r[2]);if(!c||!q)return;
+    const raw=[r[3],r[4],r[5],r[6]].map(txt),L='ABCD'.indexOf(txt(r[7]).toUpperCase().charAt(0));if(L<0||!raw[L])return;
+    const o=[],map=[];raw.forEach((x,i)=>{if(x){map[i]=o.length;o.push(x)}});if(o.length<2)return;
+    const u=use(r[9]);if(!u.slide&&!u.exam)return;
+    let id=txt(r[0]).replace(/\s+/g,'')||(c+'-d'+(ri+2));if(ids[id])id+='_'+(ri+2);ids[id]=1;
+    const it={id,q,o,a:map[L],e:txt(r[8]),img:img(r[10])};
+    if(u.slide){QZn[c].push(it);ns++}if(u.exam){BK[c].push(Object.assign({k:c},it));ne++}n++});
+  if(!n)return false;
+  /* bài nào không có câu đánh dấu "Slide" thì lấy 10 câu đầu của bài đó trong ngân hàng thi */
+  CODES.forEach(c=>{if(!QZn[c].length)QZn[c]=BK[c].length?BK[c].slice(0,10):(BUILTIN_QZ[c]||[])});
+  window.QZ=QZn;window.QBANK=BK;
+  const ex=parseExams(d.exams);window.EXAM_DEFS=ex.length?ex:null;
+  const cfg={classes:[],msg:''};(d.cfg||[]).forEach(r=>{const k=txt(r[0]).toLowerCase(),v=txt(r[1]);if(!v)return;
+    if(/lớp|lop/.test(k))cfg.classes=v.split(/[,;\n]/).map(x=>x.trim()).filter(Boolean);else if(/nhắn|nhan|thông báo|thong bao/.test(k))cfg.msg=v});
+  window.SHEET_CFG=cfg;
+  info={src,ts:ts||Date.now(),n,nSlide:ns,nExam:ne,nExams:ex.length,err:''};
+  refreshQuizzes();
+  try{window.dispatchEvent(new CustomEvent('md18data',{detail:info}))}catch(e){}
+  return true}
+function refreshQuizzes(){if(!(window.W&&window.W.quiz))return;
+  document.querySelectorAll('[data-w="quiz"]').forEach(el=>{if(el._inited&&!el._dirty){try{W.quiz(el)}catch(e){}}})}
+let loading=null;
+function load(fresh){if(!LINK)return Promise.resolve(false);if(loading&&!fresh)return loading;
+  loading=jsonp({action:'bank',fresh:fresh?1:0},30000).then(d=>{
+    if(d&&d.ok&&apply(d,'sheet')){S.set('sheetdata',{link:LINK,ts:Date.now(),d});return true}
+    info.err=(d&&d.msg)||'Bảng tính chưa có câu hỏi hợp lệ';return false})
+   .catch(()=>{info.err='Không tải được dữ liệu từ Google Sheet';return false}).then(v=>{loading=null;return v});
+  return loading}
+function seed(examRows,cfgRows){return post({action:'seed',q:builtinRows(),exams:examRows||[],cfg:cfgRows||[]})}
+
+/* khởi động: dùng ngay bản đã lưu trên máy, rồi tải bản mới */
+const c0=S.get('sheetdata',null);
+if(LINK&&c0&&c0.link===LINK&&c0.d)apply(c0.d,'cache',c0.ts);
+window.MD18DATA={LINK,CODES,CHN,label,codeOf,scopeOf,jsonp,post,load,seed,builtinBank,builtinRows,info:()=>info};
+if(LINK)setTimeout(()=>load(false),50);
+})();
+
+/* ================= THI ĐÁNH GIÁ – MĐ18 =================
+   Đề thi lấy ngẫu nhiên từ ngân hàng câu hỏi (trang NganHang của Google Sheet, dự phòng: câu hỏi có sẵn trong file),
+   danh sách đề từ trang DeThi; chấm điểm tự động, gửi kết quả về trang KetQua qua Google Apps Script. */
+(function(){
+'use strict';
+const VER='MD18-thi-1';
+const AUTHOR='Tác giả: Huỳnh Hào Kiệt - Trường Trung cấp nghề Diên Khánh';
+const CH=[
+ ['b1','Bài 1','Nguyên lý hoạt động, cấu tạo tủ lạnh gia đình'],
+ ['b2','Bài 2','Các đặc tính vận hành của tủ lạnh'],
+ ['b3','Bài 3','Động cơ máy nén'],
+ ['b4','Bài 4','Thiết bị điện, bảo vệ và tự động'],
+ ['b5','Bài 5','Hệ thống điện tủ lạnh'],
+ ['inv','Chuyên đề','Công nghệ Inverter trên tủ lạnh'],
+ ['b6','Bài 6','Cân cáp tủ lạnh'],
+ ['b7','Bài 7','Nạp gas tủ lạnh'],
+ ['b8','Bài 8','Những hư hỏng thông thường và cách sửa chữa'],
+ ['b9','Bài 9','Sử dụng, bảo dưỡng tủ lạnh'],
+ ['b10','Bài 10','Cấu tạo, nguyên lý hệ thống lạnh thương nghiệp'],
+ ['b11','Bài 11','Hệ thống điện máy lạnh thương nghiệp'],
+ ['b12','Bài 12','Lắp đặt hệ thống lạnh thương nghiệp'],
+ ['b13','Bài 13','Sửa chữa hệ thống lạnh thương nghiệp'],
+ ['b14','Bài 14','Bảo dưỡng hệ thống lạnh thương nghiệp']];
+const CHN={};CH.forEach(c=>CHN[c[0]]=c);
+
+/* ---------- cấu hình ---------- */
+const D0={linkGoogleSheet:'',matKhau:'',matKhauThiKetThuc:'',danhSachLop:[],
+  kiemTraBai:{soCau:10,phut:15,xemDapAn:true},kiemTraDinhKy:{soCau:20,phut:30,xemDapAn:true},
+  thiKetThuc:{soCau:40,phut:60,xemDapAn:false},dongDeThi:[]};
+const U=window.CAU_HINH_THI||{};
+const CFG=Object.assign({},D0,U);
+['kiemTraBai','kiemTraDinhKy','thiKetThuc'].forEach(k=>CFG[k]=Object.assign({},D0[k],U[k]||{}));
+const NET=window.MD18DATA||null;
+const URL0=String(CFG.linkGoogleSheet||'').trim();
+const LINK=NET?NET.LINK:(/^https:\/\/script\.google(usercontent)?\.com\/\S+$/.test(URL0)?URL0:'');
+
+/* đề thi mặc định (dùng khi chưa có trang DeThi trên Google Sheet) */
+function mk(o,c){return{soCau:Math.max(1,Math.round(+c.soCau||10)),phut:Math.max(1,+c.phut||15),xem:c.xemDapAn!==false,...o}}
+const DEF=[];
+CH.forEach(([id,lab,name])=>DEF.push(mk({id,grp:'bai',lab:lab==='Chuyên đề'?'Inverter':lab,ten:(lab==='Chuyên đề'?'Chuyên đề Inverter':lab)+': '+name,sub:name,ch:[id]},CFG.kiemTraBai)));
+[['dk1','Kiểm tra định kỳ 1','Bài 1 – Bài 4',['b1','b2','b3','b4']],
+ ['dk2','Kiểm tra định kỳ 2','Bài 5, Inverter, Bài 6 – Bài 7',['b5','inv','b6','b7']],
+ ['dk3','Kiểm tra định kỳ 3','Bài 8 – Bài 9',['b8','b9']],
+ ['dk4','Kiểm tra định kỳ 4','Bài 10 – Bài 14',['b10','b11','b12','b13','b14']]]
+ .forEach(([id,t,sub,ch],i)=>DEF.push(mk({id,grp:'dk',lab:'Định kỳ '+(i+1),ten:t+' ('+sub+')',sub,ch},CFG.kiemTraDinhKy)));
+DEF.push(mk({id:'ktmd',grp:'kt',lab:'Kết thúc',ten:'Thi kết thúc mô đun – phần lý thuyết',sub:'Toàn bộ 14 bài và chuyên đề Inverter',ch:CH.map(c=>c[0])},CFG.thiKetThuc));
+DEF.forEach(e=>{e.mo=(CFG.dongDeThi||[]).map(String).indexOf(e.id)<0;e.pw=String((e.grp==='kt'&&CFG.matKhauThiKetThuc)?CFG.matKhauThiKetThuc:(CFG.matKhau||''))});
+const GRPN={bai:'Kiểm tra cuối bài',dk:'Kiểm tra định kỳ',kt:'Thi kết thúc mô đun'};
+function defRows(){return DEF.map(e=>[e.id,GRPN[e.grp],e.ten,e.grp==='kt'?'Tất cả':e.ch.map(k=>k==='inv'?'Inverter':'Bài '+k.slice(1)).join(', '),e.soCau,e.phut,e.xem?'Có':'Không',e.mo?'Có':'Không',e.pw])}
+let EXAMS=DEF,EX={},CLASSES=[],MSG='';
+function rebuild(){
+  EXAMS=(window.EXAM_DEFS&&window.EXAM_DEFS.length)?window.EXAM_DEFS:DEF;EX={};EXAMS.forEach(e=>EX[e.id]=e);
+  const sc=window.SHEET_CFG||{};CLASSES=(sc.classes&&sc.classes.length?sc.classes:(Array.isArray(CFG.danhSachLop)?CFG.danhSachLop:[])).map(String).filter(Boolean);MSG=sc.msg||'';BANK=null}
+function pwFor(ex){return String(ex.pw||'')}
+function findEx(id){if(!id)return null;if(EX[id])return EX[id];return EXAMS.find(e=>e.grp==='bai'&&e.ch.length===1&&e.ch[0]===id)||EXAMS.find(e=>e.ch.length===1&&e.ch[0]===id)||null}
+function metaOf(r){return r&&(EX[r.ex]||r.meta)||null}
+
+/* ---------- tiện ích ---------- */
+const S={get(k,d){try{const v=localStorage.getItem('mdl18_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+         set(k,v){try{localStorage.setItem('mdl18_'+k,JSON.stringify(v))}catch(e){}},
+         del(k){try{localStorage.removeItem('mdl18_'+k)}catch(e){}}};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function rnd(n){try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}catch(e){return Math.floor(Math.random()*n)}}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
+const two=n=>String(n).padStart(2,'0');
+function mmss(sec){sec=Math.max(0,Math.ceil(sec));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return(h?h+':'+two(m):two(m))+':'+two(s)}
+function durTxt(sec){sec=Math.max(0,Math.round(sec));const m=Math.floor(sec/60),s=sec%60;return(m?m+' phút ':'')+s+' giây'}
+function dt(t){const d=new Date(t);return two(d.getHours())+':'+two(d.getMinutes())+' '+two(d.getDate())+'/'+two(d.getMonth()+1)+'/'+d.getFullYear()}
+const dec=(x,n)=>x.toFixed(n==null?2:n).replace('.',',');
+function fmtScore(x){return dec(x,2).replace(/,00$/,'').replace(/(,\d)0$/,'$1')}
+function rank(x){return x>=9?'Xuất sắc':x>=8?'Giỏi':x>=6.5?'Khá':x>=5?'Trung bình (đạt)':'Chưa đạt'}
+function normName(s){return String(s||'').replace(/\s+/g,' ').trim().split(' ').map(w=>w?w.charAt(0).toLocaleUpperCase('vi')+w.slice(1).toLocaleLowerCase('vi'):w).join(' ')}
+function device(){const u=navigator.userAgent||'';const d=/iPhone/.test(u)?'iPhone':/iPad/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)?'iPad':/Android/.test(u)?(/Mobile/.test(u)?'Điện thoại Android':'Máy tính bảng Android'):/Windows/.test(u)?'Máy tính Windows':/CrOS/.test(u)?'Chromebook':/Mac OS X/.test(u)?'Máy Mac':/Linux/.test(u)?'Máy Linux':'Thiết bị khác';
+  return d+' '+(screen.width||'')+'×'+(screen.height||'')}
+function sidNew(){let s='';for(let i=0;i<10;i++)s+='abcdefghijkmnpqrstuvwxyz23456789'[rnd(32)];return Date.now().toString(36)+'-'+s}
+
+/* ---------- ngân hàng câu hỏi ---------- */
+var BANK=null;
+function bank(){if(BANK)return BANK;
+  if(window.QBANK){BANK=window.QBANK;return BANK}
+  if(NET){BANK=NET.builtinBank();return BANK}
+  BANK={};CH.forEach(([k])=>{const a=((window.QZ||{})[k]||[]).concat((window.QX||{})[k]||[]);
+    BANK[k]=a.filter(q=>q&&q.q&&q.o&&q.o.length>=2).map((q,i)=>({id:k+'-'+two(i+1),k,q:q.q,o:q.o,a:q.a,e:q.e||''}))});return BANK}
+function bankSize(ch){const B=bank();return ch.reduce((s,k)=>s+(B[k]||[]).length,0)}
+function buildPaper(ex){
+  const B=bank();const ch=ex.ch.filter(k=>B[k]&&B[k].length);
+  const n=Math.min(ex.soCau,bankSize(ch));
+  const pools={},take={};ch.forEach(k=>{pools[k]=shuffle(B[k].slice());take[k]=0});
+  let left=n;/* chia đều số câu cho các bài, phần dư bốc ngẫu nhiên */
+  while(left>0){let moved=false;for(const k of shuffle(ch.slice())){if(left<=0)break;if(take[k]<pools[k].length){take[k]++;left--;moved=true}}if(!moved)break}
+  let qs=[];ch.forEach(k=>{qs=qs.concat(pools[k].slice(0,take[k]))});
+  return shuffle(qs).map(q=>{const idx=shuffle(q.o.map((_,i)=>i));return{id:q.id,q:q.q,o:idx.map(i=>q.o[i]),m:idx,a:idx.indexOf(q.a),e:q.e,img:q.img||''}});
+}
+
+/* ---------- gửi kết quả (JSONP + dự phòng POST) ---------- */
+function jsonp(params,ms){if(NET)return NET.jsonp(params,ms);return new Promise((res,rej)=>{
+  if(!LINK){rej(new Error('nolink'));return}
+  const cb='__md18cb_'+Date.now().toString(36)+rnd(1e6);const sc=document.createElement('script');let done=false;
+  const tm=setTimeout(()=>{end();rej(new Error('timeout'))},ms||20000);
+  function end(){done=true;clearTimeout(tm);window[cb]=function(){};sc.remove()}
+  window[cb]=d=>{if(done)return;end();res(d||{})};
+  sc.onerror=()=>{if(done)return;end();rej(new Error('network'))};
+  const q=Object.keys(params).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(params[k]==null?'':params[k])).join('&');
+  sc.src=LINK+(LINK.indexOf('?')>=0?'&':'?')+q+'&callback='+cb;(document.head||document.body).appendChild(sc)})}
+function postBeacon(p){if(NET){NET.post(p,true);return}try{fetch(LINK,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p),keepalive:true}).catch(()=>{})}catch(e){}}
+const pend=()=>S.get('exam_pending',[]);
+function setPend(a){S.set('exam_pending',a)}
+function markSent(sid){const h=S.get('exam_hist',[]);h.forEach(x=>{if(x.sid===sid)x.sent=1});S.set('exam_hist',h)}
+async function sendOne(p,tryPost){
+  try{const r=await jsonp(p);if(r&&r.ok){setPend(pend().filter(x=>x.sid!==p.sid));markSent(p.sid);return 'ok'}return 'fail'}
+  catch(e){if(tryPost&&LINK)postBeacon(p);return 'fail'}}
+let flushing=false;
+async function flush(){if(flushing||!LINK)return;flushing=true;try{for(const p of pend())await sendOne(p,false)}finally{flushing=false}}
+
+/* ---------- giao diện ---------- */
+let root,bodyEl,tmEl,topBtn,modal,st=null,tick=null,lastFocus=null,opened=false,sideOpen=false,warnShown=0;
+const IC={clip:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
+ clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>',
+ flag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
+ grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>'};
+function mount(){
+  if(root)return;
+  root=document.createElement('div');root.id='exam';root.className='exr';root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','Thi đánh giá');root.hidden=true;
+  root.innerHTML=`<header class="exr-top"><div class="exr-brand"><span class="exr-logo">${IC.clip}</span><span class="exr-tt"><b>Thi đánh giá – MĐ18</b><small>${AUTHOR}</small></span></div>
+   <div class="exr-tm" hidden></div><button class="exr-btn" type="button"></button></header><main class="exr-body" tabindex="-1"></main><div class="exr-modal" hidden></div><div class="exr-warn" hidden></div>`;
+  document.body.appendChild(root);
+  bodyEl=root.querySelector('.exr-body');tmEl=root.querySelector('.exr-tm');topBtn=root.querySelector('.exr-btn');modal=root.querySelector('.exr-modal');
+  topBtn.onclick=()=>{if(st&&!st.done)askSubmit();else close()};
+  root.addEventListener('contextmenu',e=>{if(st&&!st.done)e.preventDefault()});
+  root.addEventListener('copy',e=>{if(st&&!st.done)e.preventDefault()});
+  document.addEventListener('keydown',onKey,true);
+  document.addEventListener('visibilitychange',onVis);
+  window.addEventListener('beforeunload',e=>{if(st&&!st.done&&opened){e.preventDefault();e.returnValue=''}});
+  window.addEventListener('online',flush);
+}
+function setTop(mode){/* 'close' | 'submit' | 'none' */
+  topBtn.hidden=mode==='none'||(mode==='close'&&window.EXAM_STANDALONE);
+  topBtn.className='exr-btn'+(mode==='submit'?' go':'');
+  topBtn.innerHTML=mode==='submit'?'Nộp bài':'<span aria-hidden="true">×</span><span class="vh">Đóng</span>';
+  topBtn.setAttribute('aria-label',mode==='submit'?'Nộp bài':'Đóng phần thi');
+}
+let screen='';
+function view(html,mode,scr){screen=scr||'';bodyEl.innerHTML=html;bodyEl.scrollTop=0;setTop(mode||'close');tmEl.hidden=!(st&&!st.done);root.classList.toggle('running',!!(st&&!st.done));try{bodyEl.focus({preventScroll:true})}catch(e){}}
+
+/* ---------- 1. danh sách bài thi ---------- */
+function best(id){const h=S.get('exam_hist',[]).filter(x=>x.ex===id);if(!h.length)return null;return Math.max(...h.map(x=>x.score))}
+function card(ex){const b=best(ex.id),lock=ex.mo===false,n=Math.min(ex.soCau,bankSize(ex.ch));
+  return `<button class="exc${lock?' lock':''}" data-ex="${ex.id}"${lock?' disabled':''}><span class="exc-n">${esc(ex.lab)}</span><span class="exc-t">${esc(ex.grp==='bai'?ex.sub:ex.sub)}</span>
+   <span class="exc-m">${n} câu · ${String(ex.phut).replace('.',',')} phút</span>${lock?'<span class="exc-b lk">Chưa mở</span>':b!=null?`<span class="exc-b">Điểm cao nhất: ${fmtScore(b)}</span>`:''}</button>`}
+function grpHead(g){const a=EXAMS.filter(e=>e.grp===g);if(!a.length)return '';
+  const same=a.every(e=>e.soCau===a[0].soCau&&e.phut===a[0].phut);
+  return `<h2>${GRPN[g]}${same?` <small>${a[0].soCau} câu · ${a[0].phut} phút</small>`:''}</h2><div class="exgrid${g==='dk'?' two':g==='kt'?' one':''}">${a.map(card).join('')}</div>`}
+function home(){
+  st=null;const pr=S.get('exam_run',null),pm=metaOf(pr);
+  const hist=S.get('exam_hist',[]).slice(-8).reverse();
+  view(`<div class="exw">
+   <div class="exhero"><h1>Thi đánh giá kiến thức</h1><p>Mô đun MĐ18 – Sửa chữa, bảo trì tủ lạnh dân dụng. Chọn bài thi, nhập họ tên và làm bài trong thời gian quy định. Bài làm được chấm điểm ngay${LINK?' và gửi về giáo viên':''}.</p></div>
+   ${MSG?`<div class="exnote msg">${esc(MSG)}</div>`:''}
+   ${pr&&!pr.done&&pm?`<div class="exresume"><div><b>Em đang làm dở: ${esc(pm.ten)}</b><span>Thí sinh ${esc(pr.name)} – thời gian vẫn đang tính, còn khoảng ${mmss((pr.t1-Date.now())/1000)}</span></div><button class="exbtn pri" data-go="resume">Làm tiếp</button></div>`:''}
+   ${LINK?'':'<div class="exnote">Phần thi chưa được kết nối Google Sheet: kết quả chỉ lưu trên máy này. Sau khi thi, em chụp màn hình kết quả gửi giáo viên.</div>'}
+   ${grpHead('bai')}${grpHead('dk')}${grpHead('kt')}
+   ${hist.length?`<h2>Bài đã làm trên máy này</h2><div class="exhist">${hist.map(h=>`<div><span class="d">${dt(h.ts)}</span><span class="t">${esc(EX[h.ex]?EX[h.ex].lab:(h.lab||h.ex))} · ${esc(h.name)}</span><b>${fmtScore(h.score)}</b><span class="s ${h.sent?'ok':LINK?'pd':'lc'}" title="${h.sent?'Đã gửi về giáo viên':LINK?'Chưa gửi được, sẽ gửi lại':'Chỉ lưu trên máy'}">${h.sent?'Đã gửi':LINK?'Chờ gửi':'Trên máy'}</span></div>`).join('')}</div>`:''}
+   <div class="exfoot"><button class="exlink" data-go="gv">Dành cho giáo viên: Google Sheet, ngân hàng câu hỏi</button><span>${AUTHOR}</span></div></div>`,'close','home');
+  bodyEl.querySelectorAll('[data-ex]').forEach(b=>b.onclick=()=>reg(EX[b.dataset.ex]));
+  const r=bodyEl.querySelector('[data-go=resume]');if(r)r.onclick=resume;
+  bodyEl.querySelector('[data-go=gv]').onclick=teacher;
+}
+
+/* ---------- 2. đăng ký dự thi ---------- */
+function reg(ex){
+  if(!ex){home();return}
+  const who=S.get('exam_who',{name:'',cls:''});const pw=pwFor(ex);const n=Math.min(ex.soCau,bankSize(ex.ch));
+  const scope=ex.ch.length===CH.length?'Toàn bộ mô đun':ex.ch.map(k=>CHN[k][1]==='Chuyên đề'?'Inverter':CHN[k][1]).join(', ');
+  view(`<div class="exw narrow"><button class="exback" data-go="home">‹ Danh sách bài thi</button>
+   <div class="excard"><div class="exk">${GRPN[ex.grp]||'Bài thi'}</div><h2>${esc(ex.ten)}</h2>
+   <div class="exmeta"><span>${IC.clip}${n} câu trắc nghiệm</span><span>${IC.clock}${ex.phut} phút</span><span class="sc">Phạm vi: ${esc(scope)}</span></div>
+   <form class="exform" novalidate autocomplete="on">
+    <label><span>Họ và tên</span><input name="name" maxlength="60" autocomplete="name" value="${esc(who.name)}" placeholder="Ví dụ: Nguyễn Văn An" required></label>
+    <label><span>Lớp</span>${CLASSES.length?`<select name="cls"><option value="">– Chọn lớp –</option>${CLASSES.map(c=>`<option${c===who.cls?' selected':''}>${esc(c)}</option>`).join('')}</select>`:`<input name="cls" maxlength="30" value="${esc(who.cls)}" placeholder="Ví dụ: KTML K25A" required>`}</label>
+    ${pw?'<label><span>Mật khẩu bài thi <small>(giáo viên cung cấp)</small></span><input name="pw" type="password" maxlength="40" autocomplete="off"></label>':''}
+    <label class="chk"><input type="checkbox" name="ok"><span>Em cam kết tự làm bài, không xem tài liệu, không nhờ người khác làm hộ.</span></label>
+    <div class="exerr" role="alert"></div>
+    <button class="exbtn pri xl" type="submit">Bắt đầu làm bài</button></form>
+   <ul class="exrules"><li>Mỗi câu chỉ có <b>1 đáp án đúng</b>. Câu bỏ trống không có điểm.</li><li>Được chuyển qua lại giữa các câu và đổi đáp án trước khi nộp.</li><li><b>Hết giờ, bài tự động nộp.</b> Đề và thứ tự đáp án của mỗi bạn khác nhau.</li><li>Không thoát ra ngoài trong khi làm bài: số lần rời màn hình được ghi lại và gửi cho giáo viên.</li><li>Lỡ tải lại trang hoặc mất mạng: bài làm vẫn được giữ trên máy, mở lại để làm tiếp.</li></ul>
+   </div></div>`,'close');
+  bodyEl.querySelector('[data-go=home]').onclick=home;
+  const f=bodyEl.querySelector('form'),err=bodyEl.querySelector('.exerr');
+  f.onsubmit=e=>{e.preventDefault();
+    const name=normName(f.name.value),cls=String(f.cls.value||'').replace(/\s+/g,' ').trim().toUpperCase();
+    let m='';
+    if(name.split(' ').length<2||name.length<5||!/^[\p{L}\s.'-]+$/u.test(name))m='Em hãy nhập đầy đủ họ và tên (có dấu), ví dụ: Nguyễn Văn An.';
+    else if(!cls)m='Em hãy nhập (hoặc chọn) lớp.';
+    else if(pw&&String(f.pw.value).trim()!==pw)m='Mật khẩu bài thi chưa đúng. Hỏi giáo viên mật khẩu.';
+    else if(!f.ok.checked)m='Em đánh dấu vào ô cam kết trước khi bắt đầu.';
+    else if(!bankSize(ex.ch))m='Ngân hàng chưa có câu hỏi cho bài thi này. Em báo giáo viên nhé.';
+    if(m){err.textContent=m;return}
+    S.set('exam_who',{name,cls});start(ex,name,cls)};
+}
+
+/* ---------- 3. làm bài ---------- */
+function start(ex,name,cls){
+  const qs=buildPaper(ex);const t0=Date.now();
+  st={v:1,sid:sidNew(),ex:ex.id,meta:{id:ex.id,ten:ex.ten,lab:ex.lab,grp:ex.grp,xem:ex.xem,phut:ex.phut},name,cls,qs,ans:qs.map(()=>null),flag:qs.map(()=>0),i:0,t0,t1:t0+ex.phut*60000,leaves:0,done:false};
+  save();run();
+}
+function save(){if(st&&!st.done)S.set('exam_run',st)}
+function resume(){const r=S.get('exam_run',null);if(!r||r.done||!metaOf(r)){S.del('exam_run');home();return}st=r;
+  if(Date.now()>=st.t1){finish('timeout_away');return}run()}
+function run(){
+  const ex=metaOf(st);sideOpen=false;
+  view(`<div class="exrun"><div class="exmainq">
+    <div class="exq-head"><div class="exq-n"></div><button type="button" class="exflag">${IC.flag}<span>Đánh dấu xem lại</span></button></div>
+    <div class="exbar" aria-hidden="true"><i></i></div>
+    <div class="exq-t" id="exq-t"></div>
+    <div class="exops" role="radiogroup" aria-labelledby="exq-t"></div>
+    <div class="exnav"><button type="button" class="exbtn pv"><span class="lg">‹ Câu trước</span><span class="sh">‹ Trước</span></button><button type="button" class="exbtn gr">${IC.grid}<span class="gc"></span></button><button type="button" class="exbtn pri nx"></button></div>
+    <p class="exwho">${esc(st.name)} · Lớp ${esc(st.cls)} · ${esc(ex.ten)}</p></div>
+   <aside class="exside"><div class="exside-h"><b>Bảng câu hỏi</b><button type="button" class="exside-x" aria-label="Đóng">×</button></div><div class="exgridq"></div>
+    <div class="exlegend"><span><i class="a"></i>Đã trả lời</span><span><i></i>Chưa trả lời</span><span><i class="f"></i>Đánh dấu</span></div>
+    <button type="button" class="exbtn go xl">Nộp bài</button></aside></div>`,'submit','run');
+  const q=s=>bodyEl.querySelector(s);
+  q('.pv').onclick=()=>go(st.i-1);q('.nx').onclick=()=>{if(st.i<st.qs.length-1)go(st.i+1);else askSubmit()};
+  q('.gr').onclick=()=>toggleSide(true);q('.exside-x').onclick=()=>toggleSide(false);
+  q('.exside .go').onclick=askSubmit;
+  q('.exflag').onclick=()=>{st.flag[st.i]=st.flag[st.i]?0:1;save();paint()};
+  q('.exops').addEventListener('click',e=>{const b=e.target.closest('.exop');if(!b)return;st.ans[st.i]=+b.dataset.o;save();paint()});
+  q('.exgridq').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;toggleSide(false);go(+b.dataset.k)});
+  paint();startTick();
+}
+function toggleSide(v){sideOpen=v;root.classList.toggle('side',v)}
+function go(i){if(!st||i<0||i>=st.qs.length)return;st.i=i;save();paint();const t=bodyEl.querySelector('.exmainq');if(t)t.scrollIntoView({block:'start'});bodyEl.scrollTop=0}
+function paint(){
+  const n=st.qs.length,i=st.i,d=st.qs[i],a=st.ans[i],done=st.ans.filter(x=>x!=null).length;
+  const q=s=>bodyEl.querySelector(s);if(!q('.exops'))return;
+  q('.exq-n').innerHTML=`Câu <b>${i+1}</b> / ${n}`;
+  q('.exq-t').innerHTML=(d.img?`<img class="exq-img" src="${esc(d.img)}" alt="Hình minh họa" onerror="this.style.display='none'">`:'')+esc(d.q);
+  q('.exops').innerHTML=d.o.map((o,k)=>`<button type="button" class="exop${a===k?' on':''}" role="radio" aria-checked="${a===k}" data-o="${k}"><span class="L">${'ABCD'[k]}</span><span class="tx">${esc(o)}</span></button>`).join('');
+  q('.exflag').classList.toggle('on',!!st.flag[i]);
+  q('.exbar i').style.width=(done/n*100)+'%';
+  q('.gc').textContent=`${done}/${n} đã làm`;
+  q('.pv').disabled=i===0;q('.nx').innerHTML=i===n-1?'Nộp bài':'<span class="lg">Câu sau ›</span><span class="sh">Sau ›</span>';q('.nx').classList.toggle('last',i===n-1);
+  q('.exgridq').innerHTML=st.qs.map((_,k)=>`<button type="button" data-k="${k}" class="${st.ans[k]!=null?'a':''}${st.flag[k]?' f':''}${k===i?' now':''}" aria-label="Câu ${k+1}${st.ans[k]!=null?', đã trả lời':''}">${k+1}</button>`).join('');
+}
+function startTick(){clearInterval(tick);const upd=()=>{if(!st||st.done){clearInterval(tick);return}const left=(st.t1-Date.now())/1000;
+  tmEl.innerHTML=IC.clock+'<span>'+mmss(left)+'</span>';tmEl.classList.toggle('low',left<=300&&left>60);tmEl.classList.toggle('crit',left<=60);
+  tmEl.setAttribute('aria-label','Thời gian còn lại '+mmss(left));if(left<=0)finish('timeout')};upd();tick=setInterval(upd,250)}
+function askSubmit(){if(!st||st.done)return;const n=st.qs.length,miss=st.ans.filter(x=>x==null).length,fl=st.flag.filter(Boolean).length;
+  dialog(`<h3>Nộp bài?</h3><p>${miss?`Em còn <b class="c-bad">${miss} câu chưa trả lời</b>. `:'Em đã trả lời đủ '+n+' câu. '}${fl?`Có ${fl} câu đang đánh dấu xem lại. `:''}Sau khi nộp sẽ không sửa được bài.</p>`,
+   [['Làm tiếp',''],['Nộp bài','sub']],v=>{if(v==='sub')finish('user')})}
+function dialog(html,btns,cb){modal.innerHTML=`<div class="exdlg" role="alertdialog" aria-modal="true">${html}<div class="exdlg-b">${btns.map(([t,v])=>`<button type="button" class="exbtn ${v?'pri':''}" data-v="${v}">${t}</button>`).join('')}</div></div>`;
+  modal.hidden=false;const bs=modal.querySelectorAll('button');bs.forEach(b=>b.onclick=()=>{modal.hidden=true;cb&&cb(b.dataset.v)});try{bs[bs.length-1].focus()}catch(e){}}
+function onVis(){if(!st||st.done||!opened)return;
+  if(document.hidden){st.leaves++;save()}
+  else if(st.leaves>warnShown){warnShown=st.leaves;const w=root.querySelector('.exr-warn');w.innerHTML=`Em đã rời khỏi màn hình thi <b>${st.leaves} lần</b>. Số lần này được ghi lại và gửi cho giáo viên.<button type="button" aria-label="Đóng">×</button>`;w.hidden=false;
+    w.querySelector('button').onclick=()=>w.hidden=true;clearTimeout(onVis.t);onVis.t=setTimeout(()=>w.hidden=true,7000)}}
+function onKey(e){if(!opened)return;
+  if(!modal.hidden){if(e.key==='Escape'){modal.hidden=true;e.preventDefault()}e.stopPropagation();return}
+  const t=e.target,typing=t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT');
+  if(st&&!st.done&&!typing&&!e.ctrlKey&&!e.metaKey&&!e.altKey){
+    const m={'1':0,'2':1,'3':2,'4':3,a:0,b:1,c:2,d:3}[e.key.toLowerCase()];
+    if(m!=null&&m<st.qs[st.i].o.length){st.ans[st.i]=m;save();paint();e.preventDefault()}
+    else if(e.key==='ArrowRight'||e.key==='Enter'&&t===document.body){go(st.i+1);e.preventDefault()}
+    else if(e.key==='ArrowLeft'){go(st.i-1);e.preventDefault()}
+    else if(e.key==='Escape'&&sideOpen){toggleSide(false)}
+  }else if(e.key==='Escape'&&!typing&&!(st&&!st.done)){close();e.preventDefault()}
+  e.stopPropagation();
+}
+
+/* ---------- 4. chấm điểm, kết quả ---------- */
+function finish(why){
+  if(!st||st.done)return;clearInterval(tick);
+  const ex=metaOf(st),n=st.qs.length;let correct=0;const det=[];
+  st.qs.forEach((q,k)=>{const a=st.ans[k],ok=a!=null&&a===q.a;if(ok)correct++;
+    const L=i=>i==null?'-':'ABCD'[q.m[i]];det.push(q.id+':'+(ok?L(a)+'+':L(a)+'/'+L(q.a)))});
+  const tEnd=Math.min(Date.now(),st.t1),dur=Math.round((tEnd-st.t0)/1000);
+  const score=Math.round(correct/n*10*100)/100;
+  st.done=true;st.why=why;st.correct=correct;st.score=score;st.dur=dur;st.tEnd=Date.now();
+  const p={action:'submit',sid:st.sid,name:st.name,cls:st.cls,exam:ex.id,examName:ex.ten,total:n,correct,score:score.toFixed(2),
+    dur:durTxt(dur),durSec:dur,leaves:st.leaves,dev:device(),t0:st.t0,note:why==='user'?'':why==='timeout'?'Hết giờ, tự nộp':'Hết giờ khi rời trang, tự nộp',detail:det.join(' '),ver:VER};
+  const h=S.get('exam_hist',[]);h.push({sid:st.sid,ex:ex.id,lab:ex.lab,name:st.name,cls:st.cls,score,correct,total:n,ts:st.tEnd,sent:0});S.set('exam_hist',h.slice(-60));
+  if(LINK){const P=pend();P.push(p);setPend(P.slice(-50))}
+  S.del('exam_run');
+  result(p);
+}
+function result(p){
+  const ex=metaOf(st),n=st.qs.length,canReview=ex.xem!==false;
+  view(`<div class="exw narrow"><div class="excard exres">
+   ${st.why!=='user'?`<div class="exnote alert">${st.why==='timeout'?'Hết giờ – bài thi đã được nộp tự động.':'Thời gian làm bài đã hết trong lúc em rời trang – bài đã được nộp tự động.'}</div>`:''}
+   <div class="exk">Kết quả bài thi</div><h2>${esc(ex.ten)}</h2>
+   <div class="exscore ${st.score>=5?'pass':'fail'}"><b>${fmtScore(st.score)}</b><span>/ 10 điểm</span><em>${rank(st.score)}</em></div>
+   <div class="exstat"><div><b>${st.correct}/${n}</b><span>câu đúng</span></div><div><b>${mmss(st.dur)}</b><span>thời gian làm</span></div><div><b>${st.leaves}</b><span>lần rời màn hình</span></div></div>
+   <p class="exwho2">Thí sinh: <b>${esc(st.name)}</b> – Lớp <b>${esc(st.cls)}</b><br>Nộp lúc ${dt(st.tEnd)} · Mã bài: ${esc(st.sid)}</p>
+   <div class="exsend"></div>
+   <div class="exbtns">${canReview?'<button type="button" class="exbtn" data-go="rev">Xem lại bài làm</button>':''}<button type="button" class="exbtn pri" data-go="home">Về danh sách bài thi</button></div>
+   ${canReview?'':'<p class="exsmall">Bài thi này không hiển thị đáp án. Giáo viên sẽ chữa bài trên lớp.</p>'}
+   </div><div class="exrev"></div></div>`,'close','result');
+  bodyEl.querySelector('[data-go=home]').onclick=home;
+  const rv=bodyEl.querySelector('[data-go=rev]');if(rv)rv.onclick=()=>{review();rv.disabled=true};
+  const box=bodyEl.querySelector('.exsend');
+  const show=(cls,html)=>{box.className='exsend '+cls;box.innerHTML=html;const b=box.querySelector('button');if(b)b.onclick=()=>doSend(true)};
+  async function doSend(retry){
+    if(!LINK){show('lc','Phần thi chưa kết nối Google Sheet nên kết quả <b>chỉ lưu trên máy này</b>. Em hãy <b>chụp màn hình</b> kết quả này gửi giáo viên.');return}
+    show('wait','<i class="sp"></i>Đang gửi kết quả cho giáo viên…');
+    const r=await sendOne(p,!retry);
+    if(r==='ok')show('ok','✓ Đã gửi kết quả về giáo viên.');
+    else show('pd',`Chưa gửi được kết quả (mạng yếu hoặc mất kết nối). Kết quả đã lưu trên máy và sẽ tự gửi lại khi em mở phần thi. <button type="button" class="exbtn mini">Gửi lại ngay</button>`);
+  }
+  doSend(false);
+}
+function review(){
+  const box=bodyEl.querySelector('.exrev');
+  box.innerHTML='<h3>Xem lại bài làm</h3>'+st.qs.map((q,k)=>{const a=st.ans[k],ok=a===q.a;
+    return `<div class="exrv ${ok?'ok':'no'}"><div class="exrv-h"><b>Câu ${k+1}</b><span>${ok?'Đúng':a==null?'Bỏ trống':'Sai'}</span></div><p class="q">${q.img?`<img class="exq-img sm" src="${esc(q.img)}" alt="" onerror="this.style.display='none'">`:''}${esc(q.q)}</p>
+     <ul>${q.o.map((o,i)=>`<li class="${i===q.a?'r':''}${i===a&&!ok?' w':''}"><span class="L">${'ABCD'[i]}</span>${esc(o)}${i===a?'<em>em chọn</em>':''}</li>`).join('')}</ul>${q.e?`<p class="e">${esc(q.e)}</p>`:''}</div>`}).join('');
+  box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ---------- 5. giáo viên ---------- */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function teacher(){
+  const P=pend(),I=NET?NET.info():{src:'file'};
+  const nb=bankSize(CH.map(c=>c[0]));
+  const srcTxt=I.src==='sheet'?`Đang dùng câu hỏi <b>từ Google Sheet</b> (tải lúc ${dt(I.ts)})`:I.src==='cache'?`Đang dùng câu hỏi <b>từ Google Sheet</b> (bản lưu trên máy lúc ${dt(I.ts)})`:'Đang dùng câu hỏi <b>có sẵn trong file</b>';
+  view(`<div class="exw narrow"><button class="exback" data-go="home">‹ Danh sách bài thi</button><div class="excard">
+   <div class="exk">Dành cho giáo viên</div><h2>Google Sheet và ngân hàng câu hỏi</h2>
+   <p>${LINK?`Link Web App đã cấu hình:<br><code class="exlinkv">${esc(LINK.replace(/(\/s\/.{6}).+(.{6}\/exec)$/,'$1…$2'))}</code>`:'<b class="c-bad">Chưa cấu hình.</b> Mở file HTML bằng Notepad, tìm dòng <code>linkGoogleSheet</code> ở đầu file và dán link Web App vào.'}</p>
+   <p>${srcTxt}: <b>${nb}</b> câu trong ngân hàng thi, <b>${EXAMS.length}</b> đề thi.${I.err&&LINK?` <span class="c-bad">${esc(I.err)}.</span>`:''}</p>
+   <div class="exbtns left"><button type="button" class="exbtn pri" data-go="ping"${LINK?'':' disabled'}>Kiểm tra kết nối</button>
+    <button type="button" class="exbtn" data-go="reload"${LINK?'':' disabled'}>Tải lại câu hỏi từ Google Sheet</button>
+    ${P.length?`<button type="button" class="exbtn" data-go="flush">Gửi lại ${P.length} bài chưa gửi</button>`:''}</div>
+   <div class="exsend" hidden></div>
+   <h3>Sửa, thêm câu hỏi và đề thi</h3>
+   <ul class="exsteps">
+    <li>Trang <b>NganHang</b>: mỗi dòng một câu. Chọn <b>Bài</b>, gõ câu hỏi, 2 – 4 đáp án, chọn <b>Đáp án đúng</b> (A, B, C, D), giải thích (nếu có).</li>
+    <li>Cột <b>Dùng cho</b>: <i>Thi + Slide</i> = hiện ở phần trắc nghiệm cuối bài trên slide và có trong đề thi; <i>Chỉ thi</i>; <i>Chỉ slide</i>; <i>Tạm ẩn</i>. Để trống = chỉ dùng để thi.</li>
+    <li>Thứ tự câu trên slide theo thứ tự dòng. Cột <b>Mã câu</b> để trống, bảng tính tự đánh mã. Có thể dán link ảnh Google Drive (chia sẻ “Bất kỳ ai có đường liên kết”) vào cột hình ảnh.</li>
+    <li>Trang <b>DeThi</b>: mã đề, nhóm, tên, phạm vi (ví dụ <i>Bài 1, Bài 2</i> hoặc <i>Bài 10 - 14</i> hoặc <i>Tất cả</i>), số câu, số phút, cho xem đáp án, mở thi, mật khẩu. Trang <b>CauHinh</b>: danh sách lớp, lời nhắn cho học sinh.</li>
+    <li>Sửa xong, menu <b>Thi MĐ18 → Kiểm tra lỗi ngân hàng</b> để xem câu nào thiếu đáp án. Học sinh mở lại trang là thấy câu hỏi mới.</li></ul>
+   <h3>Cài đặt (làm một lần)</h3>
+   <ol class="exsteps"><li>Tạo một Google Sheet mới (ví dụ <b>MĐ18 – Ngân hàng câu hỏi và kết quả thi</b>).</li>
+    <li>Vào <b>Tiện ích mở rộng → Apps Script</b>, xóa mã mẫu, dán toàn bộ file <b>Code.gs</b>, bấm <b>Lưu</b>.</li>
+    <li>Chọn hàm <b>caiDat</b> → <b>Chạy</b> → cấp quyền (Nâng cao → Đi tới dự án → Cho phép).</li>
+    <li><b>Triển khai → Tùy chọn triển khai mới → Ứng dụng web</b>; Thực thi với tư cách: <b>Tôi</b>; Người có quyền truy cập: <b>Bất kỳ ai</b> → Triển khai.</li>
+    <li>Dán <b>URL ứng dụng web</b> (đuôi <code>/exec</code>) vào <code>linkGoogleSheet</code> ở đầu file bài giảng và file thi, nhúng lại lên Google Sites.</li>
+    <li>Mở trang này, bấm <b>Kiểm tra kết nối</b>, rồi bấm <b>Đưa ngân hàng câu hỏi lên Google Sheet</b> (chỉ làm một lần).</li></ol>
+   <h3>Đề thi đang dùng</h3>
+   <table class="extb"><tr><th>Mã</th><th>Bài thi</th><th>Câu</th><th>Phút</th><th>Đáp án</th><th>Mở</th></tr>
+    ${EXAMS.map(e=>`<tr><td>${esc(e.id)}</td><td>${esc(e.ten)}</td><td>${Math.min(e.soCau,bankSize(e.ch))}</td><td>${String(e.phut).replace('.',',')}</td><td>${e.xem!==false?'Có':'Không'}</td><td>${e.mo===false?'Khóa':'Mở'}${e.pw?' · có mật khẩu':''}</td></tr>`).join('')}</table>
+   <p class="exsmall">Số câu trong ngân hàng thi: ${CH.map(c=>esc(c[1]==='Chuyên đề'?'Inverter':c[1].replace('Bài ','B'))+': '+bankSize([c[0]])).join(' · ')}. Cột “Chi tiết bài làm” ở trang KetQua ghi theo mã câu: <code>b3-07:B+</code> là chọn B, đúng; <code>b3-07:A/C</code> là chọn A, đáp án đúng C; dấu <code>-</code> là bỏ trống.</p>
+   </div></div>`,'close','gv');
+  bodyEl.querySelector('[data-go=home]').onclick=home;
+  const box=bodyEl.querySelector('.exsend');
+  const show=(c,h)=>{box.hidden=false;box.className='exsend '+c;box.innerHTML=h};
+  const pb=bodyEl.querySelector('[data-go=ping]');if(pb)pb.onclick=async()=>{show('wait','<i class="sp"></i>Đang kiểm tra…');
+    try{const r=await jsonp({action:'ping'},20000);if(!r||!r.ok)throw 0;
+      let h='✓ Kết nối tốt'+(r.sheet?': bảng tính “'+esc(r.sheet)+'”':'')+(r.rows!=null?', '+r.rows+' lượt thi đã nộp':'')+'.';
+      if(r.bankRows!=null)h+=` Trang NganHang có <b>${r.bankRows}</b> câu, DeThi có <b>${r.examRows||0}</b> đề.`;
+      if(r.bankRows===undefined)h+=' <span class="c-bad">Bảng tính đang dùng mã Code.gs cũ – hãy dán mã mới và triển khai phiên bản mới.</span>';
+      show('ok',h);
+      if(r.bankRows===0){const sb=document.createElement('div');sb.className='exbtns left';sb.innerHTML=`<button type="button" class="exbtn go">Đưa ngân hàng ${NET?NET.builtinRows().length:''} câu hỏi và ${DEF.length} đề thi lên Google Sheet</button>`;box.appendChild(sb);
+        sb.querySelector('button').onclick=()=>seedFlow(show)}}
+    catch(e){show('pd','Không kết nối được. Kiểm tra lại: link phải là URL ứng dụng web (đuôi /exec), quyền truy cập “Bất kỳ ai”, và đã triển khai phiên bản mới sau khi sửa mã.')}};
+  const rb=bodyEl.querySelector('[data-go=reload]');if(rb)rb.onclick=async()=>{show('wait','<i class="sp"></i>Đang tải câu hỏi từ Google Sheet…');
+    const ok=NET?await NET.load(true):false;if(screen!=='gv')return;teacher();const b2=bodyEl.querySelector('.exsend');b2.hidden=false;
+    b2.className='exsend '+(ok?'ok':'pd');b2.innerHTML=ok?`✓ Đã tải ${NET.info().nExam} câu thi, ${NET.info().nSlide} câu trên slide từ Google Sheet.`:esc((NET&&NET.info().err)||'Không tải được')+'. Nếu bảng tính còn trống, bấm “Kiểm tra kết nối” để đưa ngân hàng câu hỏi lên.'};
+  const fb=bodyEl.querySelector('[data-go=flush]');if(fb)fb.onclick=async()=>{fb.disabled=true;await flush();teacher()};
+}
+async function seedFlow(show){
+  if(!NET)return;show('wait','<i class="sp"></i>Đang đưa ngân hàng câu hỏi lên Google Sheet… (khoảng 10 – 30 giây)');
+  const cfgRows=[['Danh sách lớp',(Array.isArray(CFG.danhSachLop)?CFG.danhSachLop:[]).join(', ')],['Lời nhắn trên trang thi','']];
+  await NET.seed(defRows(),cfgRows);
+  for(let k=0;k<15;k++){await sleep(3000);
+    try{const r=await jsonp({action:'ping'},15000);if(r&&r.bankRows>0){await NET.load(true);if(screen==='gv')teacher();
+      const b=bodyEl.querySelector('.exsend');if(b){b.hidden=false;b.className='exsend ok';b.innerHTML=`✓ Đã đưa <b>${r.bankRows}</b> câu hỏi và <b>${r.examRows}</b> đề thi lên Google Sheet. Từ nay thầy/cô sửa câu hỏi ngay trên bảng tính.`}return}}catch(e){}}
+  show('pd','Chưa thấy dữ liệu trên bảng tính. Thầy/cô mở Google Sheet kiểm tra trang NganHang, hoặc bấm “Kiểm tra kết nối” rồi thử lại.');
+}
+
+/* ---------- mở / đóng ---------- */
+function open(id){
+  mount();lastFocus=document.activeElement;root.hidden=false;opened=true;document.documentElement.classList.add('exam-open');
+  const cur=S.get('exam_run',null),fx=findEx(id);
+  if(cur&&!cur.done&&metaOf(cur)){st=cur;if(Date.now()>=st.t1)finish('timeout_away');else run()}
+  else if(fx&&fx.mo!==false)reg(fx);else home();
+  flush();
+}
+function close(){if(st&&!st.done)return;if(window.EXAM_STANDALONE){home();return}
+  root.hidden=true;opened=false;document.documentElement.classList.remove('exam-open');try{lastFocus&&lastFocus.focus&&lastFocus.focus()}catch(e){}}
+rebuild();
+window.addEventListener('md18data',()=>{rebuild();if(!opened)return;if(screen==='home')home();else if(screen==='gv')teacher()});
+window.Exam={open,close,isOpen:()=>opened,_bank:bank,_exams:()=>EXAMS,_cfg:CFG,_defRows:defRows};
+if(window.EXAM_STANDALONE){const go=()=>open();if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go()}
+else{/* bài thi còn dở hoặc kết quả chưa gửi: nhắc khi mở bài giảng */
+  setTimeout(()=>{try{if(LINK&&pend().length)flush();const r=S.get('exam_run',null);if(r&&!r.done&&metaOf(r))open()}catch(e){}},600)}
+})();
+</script>
+</body></html>
