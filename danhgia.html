@@ -10,7 +10,7 @@
    2) Câu hỏi trắc nghiệm (trên slide và trong đề thi), danh sách đề thi, lớp... sửa trên Google Sheet
       (trang NganHang, DeThi, CauHinh). Các dòng còn lại bên dưới chỉ dùng khi chưa kết nối Google Sheet.  */
 var CAU_HINH_THI = {
-  linkGoogleSheet: "https://script.google.com/macros/s/AKfycbzWlT78EFJQeoMOvwDlarqvKriaQuEr_vCxuOXJBVouA8kElRBlLW2klY20VkYCGo1_sA/exec",   /* ví dụ: "https://script.google.com/macros/s/AKfy.../exec" */
+  linkGoogleSheet: "DAN_LINK_WEB_APP_VAO_DAY",   /* ví dụ: "https://script.google.com/macros/s/AKfy.../exec" */
   matKhau: "",               /* mật khẩu chung cho mọi bài thi ("" = không cần mật khẩu) */
   matKhauThiKetThuc: "",     /* mật khẩu riêng cho bài thi kết thúc mô đun */
   danhSachLop: [],           /* ví dụ: ["KTML K25A", "KTML K25B"]  (để trống = học sinh tự gõ lớp) */
@@ -307,7 +307,13 @@ QZ.inv=[
  {q:'Sau khi rút phích tủ Inverter, nguy hiểm còn lại trên board là:',o:['Không còn gì','Tụ lọc DC còn tích điện áp cao (khoảng 310 V)','Dàn lạnh còn lạnh','Quạt còn quay'],a:1,e:'Phải chờ tụ xả và đo điện áp tụ trước khi chạm vào board.'},
  {q:'Muốn thử block Inverter còn chạy không, cách làm SAI là:',o:['Đo điện trở 3 cuộn dây','Đo cách điện với vỏ','Cấp trực tiếp 220 V vào 2 chân block','Chạy qua board theo hướng dẫn hãng'],a:2,e:'Block BLDC không chạy bằng điện xoay chiều lưới; cấp trực tiếp sẽ làm hỏng block.'},
  {q:'Máy nén Linear khác máy nén piston thường ở chỗ:',o:['Không có piston','Piston chuyển động thẳng nhờ động cơ tuyến tính, không có trục khuỷu','Dùng 2 block','Chạy bằng dầu'],a:1,e:'Bỏ cơ cấu trục khuỷu – tay biên nên giảm ma sát, êm và tiết kiệm.'},
- {q:'Tủ Inverter bị rò điện nhẹ ra vỏ, cách xử lý đúng:',o:['Bỏ qua','Nối đất (tiếp địa) cho vỏ tủ chắc chắn','Đảo dây L – N là đủ','Thay block'],a:1,e:'Mạch lọc nhiễu của biến tần gây dòng rò nhỏ; nối đất bảo vệ người sử dụng.'}
+ {q:'Tủ Inverter bị rò điện nhẹ ra vỏ, cách xử lý đúng:',o:['Bỏ qua','Nối đất (tiếp địa) cho vỏ tủ chắc chắn','Đảo dây L – N là đủ','Thay block'],a:1,e:'Mạch lọc nhiễu của biến tần gây dòng rò nhỏ; nối đất bảo vệ người sử dụng.'},
+ {q:'Tủ Inverter Toshiba đời mới dùng hai bo mạch. Bo nào tạo ra điện 3 pha cấp cho máy nén?',o:['Bo nguồn – điều khiển','Bo công suất','Bo hiển thị','Rơ le xả đá'],a:1,e:'Bo công suất nhận lệnh tốc độ rồi đóng cắt 300 V DC thành điện 3 pha U – V – W.'},
+ {q:'Bo nguồn ra lệnh tốc độ cho bo công suất bằng cách nào?',o:['Cấp thẳng 220 V','Thay đổi điện trở cảm biến','Phát xung có tần số 50 – 143 Hz, truyền qua opto','Đóng rơ le xả đá'],a:2,e:'50 Hz máy nén bắt đầu chạy, 143 Hz là tốc độ cao nhất; opto cách ly hai bo.'},
+ {q:'LED trên bo công suất nháy 3 lần rồi nghỉ. Khu vực cần kiểm tra trước là:',o:['Mạch quá áp OVP, điện lưới, tụ lọc 300 V','Cảm biến ngăn mát','Quạt ngăn đông','Công tắc cửa'],a:0,e:'3 nháy là lỗi quá áp: đo điện áp OVP về vi xử lý, điện áp lưới và tụ lọc nguồn.'},
+ {q:'Máy nén Inverter giật giật rồi dừng, LED nháy 1 hoặc 6 lần; nguồn 15 V và 3,3 V vẫn đủ. Nên thay thử linh kiện nào trước?',o:['Cầu chì 3,15 A','Cảm biến xả đá','Rơ le xả đá','Ba tụ boot'],a:3,e:'Tụ boot hay hỏng khi chạy tần số cao dù đo nguội vẫn tốt; thay thử cả 3 tụ.'},
+ {q:'Cảm biến nhiệt độ của tủ Toshiba GR-RT303 đo ở 25 °C còn tốt có trị số khoảng:',o:['220 Ω','2,2 kΩ','22 kΩ','220 kΩ'],a:1,e:'Ba cảm biến của GR-RT303, RT320 đều khoảng 2,2 kΩ ở 25 °C.'},
+ {q:'Vì sao khi đo bo công suất đang cắm điện phải dùng biến áp cách ly?',o:['Để máy nén chạy nhanh hơn','Để tiết kiệm điện','Vì mát của bo nối trực tiếp với điện lưới, chạm vào mạch có thể bị điện giật','Vì đồng hồ số không đo được điện một chiều'],a:2,e:'Bo công suất không cách ly với lưới điện và tụ lọc có khoảng 300 V DC.'}
 ];
 QZ.b6=[
  {q:'"Cân cáp" là công việc:',o:['Cân khối lượng gas nạp','Xác định trở lực, chiều dài ống mao phù hợp với block và loại tủ','Kiểm tra cách điện block','Đo dòng điện block'],a:1,e:'Ống mao (cáp) phải phù hợp block, loại gas và nhiệt độ yêu cầu.'},
